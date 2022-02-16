@@ -149,7 +149,7 @@ private:
    * @details Lazy evaluation.
    */
   double pow(long p) {
-    while (powers.size() < p) {
+    while (powers.size() < std::size_t(p)) {
       powers.push_back(powers[powers.size() - 1] * powers[0]);
     }
     return powers[p - 1];

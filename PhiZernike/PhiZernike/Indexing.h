@@ -45,47 +45,32 @@ struct NollIndex {
 };
 
 /**
- * @brief Convert indexing scheme.
+ * @brief Fringe/University of Arizona index.
+ */
+struct FringeIndex {
+  long index;
+};
+
+/**
+ * @brief Wyant index.
+ */
+struct WyantIndex {
+  long index;
+};
+
+/**
+ * @brief Convert indexing scheme from or to Zernike degrees.
+ * @details
+ * \code
+ * const auto noll = as<NollIndex>(ZernikeDegrees {3, -1});
+ * \endcode
  */
 template <typename TTo, typename TFrom>
 constexpr TTo as(const TFrom& index);
 
-/**
- * @brief Zernike degrees to ANSI index.
- */
-template <>
-constexpr AnsiIndex as(const ZernikeDegrees& degrees) {
-  return AnsiIndex {(degrees.radial * (degrees.radial + 2) + degrees.azimuthal) / 2};
-}
-
-/**
- * @brief Noll index to Zernike degrees.
- */
-template <>
-constexpr ZernikeDegrees as(const NollIndex& noll) {
-  long radial = 0;
-  long i = noll.index - 1;
-  while (i > radial) {
-    ++radial;
-    i -= radial;
-  }
-  long azimuthal = (radial % 2) + 2 * long((i + ((radial + 1) % 2)) / 2);
-  if (noll.index % 2 == 0) {
-    return ZernikeDegrees {radial, azimuthal};
-  } else {
-    return ZernikeDegrees {radial, -azimuthal};
-  }
-}
-
-/**
- * @brief Noll index to ANSI index.
- */
-template <>
-constexpr AnsiIndex as(const NollIndex& noll) {
-  return as<AnsiIndex>(as<ZernikeDegrees>(noll));
-}
-
 } // namespace Zernike
 } // namespace Phi
+
+#include "PhiZernike/impl/Indexing.hpp"
 
 #endif // _PHIZERNIKE_INDEXING_H
