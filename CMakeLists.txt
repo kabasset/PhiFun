@@ -12,4 +12,4 @@ find_package(ElementsProject)
 #                         elements_project(MyProject 1.0 USE Element 3.9)
 #===============================================================================
 
-elements_project(PhiFun 0.9 USE EleFits 5.0.0 DESCRIPTION "Fun with Phi!")
+elements_project(PhiFun 0.9 USE EleFits 5.1 DESCRIPTION "Fun with Phi!")
