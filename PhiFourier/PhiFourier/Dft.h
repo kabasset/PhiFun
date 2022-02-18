@@ -127,6 +127,52 @@ using ComplexDft = DftPlan<ComplexDftType>;
  */
 using HermitianComplexDft = DftPlan<HermitianComplexDftType>;
 
+/// @cond
+namespace Internal {
+
+template <typename TIter>
+void swapRanges(TIter aBegin, TIter aEnd, TIter bBegin) {
+  TIter aIt = aBegin;
+  TIter bIt = bBegin;
+  while (aIt != aEnd) {
+    std::iter_swap(aIt++, bIt++);
+  }
+}
+
+} // namespace Internal
+/// @endcond
+
+/**
+ * @brief Swap the quadrants of a raster.
+ */
+template <typename TRaster>
+TRaster& fftShift(TRaster& raster) {
+  const auto width = raster.shape()[0];
+  const auto height = raster.shape()[1];
+  if (width % 2 != 0 || height % 2 != 0) {
+    throw std::runtime_error("fftShift() only works with even sizes as of today.");
+  }
+  const long halfWidth = raster.shape()[0] / 2;
+  const long halfHeight = raster.shape()[1] / 2;
+
+  for (long y = 0; y < halfHeight; ++y) {
+
+    // Swap UL with LR
+    auto ulBegin = &raster[{0, y}];
+    auto ulEnd = ulBegin + halfWidth;
+    auto lrBegin = &raster[{halfWidth, y + halfHeight}];
+    Internal::swapRanges(ulBegin, ulEnd, lrBegin);
+
+    // Swap UR and LL
+    auto urBegin = ulEnd;
+    auto urEnd = urBegin + halfWidth;
+    auto llBegin = &raster[{0, y + halfHeight}];
+    Internal::swapRanges(urBegin, urEnd, llBegin);
+  }
+
+  return raster;
+}
+
 } // namespace Fourier
 } // namespace Phi
 
