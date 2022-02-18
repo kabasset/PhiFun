@@ -14,6 +14,7 @@ elements_subdir(PhiDuffieux)
 #         elements_depends_on_subdirs(ElementsKernel)
 #===============================================================================
 elements_depends_on_subdirs(PhiZernike PhiFourier)
+elements_depends_on_subdirs(ElementsKernel)
 
 #===============================================================================
 # Add the find_package macro (a pure CMake command) here to locate the
@@ -31,8 +32,8 @@ elements_depends_on_subdirs(PhiZernike PhiFourier)
 #                     PUBLIC_HEADERS ElementsExamples)
 #===============================================================================
 elements_add_library(PhiDuffieux src/lib/*.cpp
-                     INCLUDE_DIRS PhiZernike PhiFourier
-                     LINK_LIBRARIES PhiZernike PhiFourier
+                     INCLUDE_DIRS PhiZernike PhiFourier ElementsKernel
+                     LINK_LIBRARIES PhiZernike PhiFourier ElementsKernel
                      PUBLIC_HEADERS PhiDuffieux)
 
 #===============================================================================
@@ -56,6 +57,10 @@ elements_add_executable(PhiEstimatePsf src/program/PhiEstimatePsf.cpp
 #===============================================================================
 elements_add_unit_test(MonochromaticOptics tests/src/MonochromaticOptics_test.cpp 
                      EXECUTABLE PhiDuffieux_MonochromaticOptics_test
+                     LINK_LIBRARIES PhiDuffieux
+                     TYPE Boost)
+elements_add_unit_test(MonochromaticSystem tests/src/MonochromaticSystem_test.cpp 
+                     EXECUTABLE PhiDuffieux_MonochromaticSystem_test
                      LINK_LIBRARIES PhiDuffieux
                      TYPE Boost)
 

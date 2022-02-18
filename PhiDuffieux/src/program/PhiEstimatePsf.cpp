@@ -7,7 +7,7 @@
 #include "EleFitsUtils/ProgramOptions.h"
 #include "EleFitsValidation/Chronometer.h"
 #include "ElementsKernel/ProgramHeaders.h"
-#include "PhiDuffieux/MonochromaticOptics.h"
+#include "PhiDuffieux/MonochromaticSystem.h"
 #include "PhiFourier/Dft.h"
 #include "PhiZernike/Zernike.h"
 
@@ -72,7 +72,8 @@ public:
 
     options.named("mask", value<std::string>()->default_value("/tmp/mask.fits"), "Pupil mask file");
     options.named("zernike", value<std::string>()->default_value("/tmp/zernike.fits"), "Zernike polynomials file");
-    options.named("psf", value<std::string>()->default_value("/tmp/psf.fits"), "PSF file");
+    options.named("optics", value<std::string>()->default_value("/tmp/optics.fits"), "Optical PSF file");
+    options.named("system", value<std::string>()->default_value("/tmp/system.fits"), "System PSF file");
 
     return options.asPair();
   }
@@ -87,7 +88,8 @@ public:
     const auto alphaCount = args["alphas"].as<long>();
     const auto maskFilename = args["mask"].as<std::string>();
     const auto zernikeFilename = args["zernike"].as<std::string>();
-    const auto psfFilename = args["psf"].as<std::string>();
+    const auto opticsFilename = args["optics"].as<std::string>();
+    const auto systemFilename = args["system"].as<std::string>();
 
     using Chrono = Euclid::Fits::Validation::Chronometer<std::chrono::milliseconds>;
     Chrono chrono;
@@ -122,30 +124,63 @@ public:
       logger.debug() << "    " << a;
     }
 
-    logger.info("Planning DFT and allocating memory...");
+    logger.info("Planning optical DFT and allocating memory...");
     chrono.start();
-    Duffieux::MonochromaticOptics data(.500, maskSide, alphas);
+    Duffieux::MonochromaticOptics optics(.500, maskSide, alphas);
+    chrono.stop();
+    logger.info() << "  " << chrono.last().count() << "ms";
+
+    logger.info("Planning system DFT and allocating memory...");
+    chrono.start();
+    Duffieux::MonochromaticSystem system(optics);
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
 
     chrono.start();
     logger.info("Computing pupil amplitude (complex exp)...");
-    data.evalPupilAmplitude(pupil, zernike);
+    optics.evalPupilAmplitude(pupil, zernike);
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
 
     logger.info("Computing PSF amplitude (complex DFT)...");
     chrono.start();
-    data.evalPsfAmplitude();
+    optics.evalPsfAmplitude();
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
 
     logger.info("Computing PSF intensity (norm)...");
     chrono.start();
-    auto& intensity = data.evalPsfIntensity();
+    auto& intensity = optics.evalPsfIntensity();
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
-    saveSif(fftShift(intensity), psfFilename);
+    saveSif(fftShift(intensity), opticsFilename);
+
+    logger.info("Generating non-optical PSF...");
+    chrono.start();
+    const Fourier::Position halfShape {(intensity.shape()[0] + 1) / 2, intensity.shape()[1]};
+    Fourier::ComplexDftBuffer nonOpticalTf(halfShape);
+    // FIXME fill
+    chrono.stop();
+    logger.info() << "  " << chrono.last().count() << "ms";
+
+    logger.info("Computing optical transfer function (real DFT)...");
+    chrono.start();
+    system.evalOpticalTf();
+    chrono.stop();
+    logger.info() << "  " << chrono.last().count() << "ms";
+
+    logger.info("Computing system transfer function (pixel-wise multiplication)...");
+    chrono.start();
+    system.evalSystemTf(nonOpticalTf);
+    chrono.stop();
+    logger.info() << "  " << chrono.last().count() << "ms";
+
+    logger.info("Computing system PSF (inverse real DFT)...");
+    chrono.start();
+    auto& psf = system.evalSystemPsf();
+    chrono.stop();
+    logger.info() << "  " << chrono.last().count() << "ms";
+    saveSif(psf, systemFilename); // FIXME fftShift()
 
     logger.info("Done.");
     return ExitCode::OK;

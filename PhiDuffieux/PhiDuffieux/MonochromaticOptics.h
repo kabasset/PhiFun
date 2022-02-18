@@ -17,6 +17,8 @@ namespace Duffieux {
  */
 class MonochromaticOptics {
 
+  friend class MonochromaticSystem;
+
 public:
   /**
    * @brief Constructor.
@@ -26,7 +28,28 @@ public:
    */
   MonochromaticOptics(double lambda, long diameter, std::vector<double> alphas) :
       m_minusTwoPiOverLambda(-2 * 3.1415926 / lambda), m_alphas(std::move(alphas)), m_pupilToPsf({diameter, diameter}),
-      pupilAmplitude(m_pupilToPsf.in()), m_psfAmplitude(m_pupilToPsf.out()), m_psfIntensity({diameter, diameter}) {}
+      m_pupilAmplitude(m_pupilToPsf.in()), m_psfAmplitude(m_pupilToPsf.out()), m_psfIntensity({diameter, diameter}) {}
+
+  /**
+   * @brief Get the pupil amplitude.
+   */
+  const Fourier::ComplexDftBuffer& pupilAmplitude() const {
+    return m_pupilAmplitude;
+  }
+
+  /**
+   * @brief Get the PSF amplitude.
+   */
+  const Fourier::ComplexDftBuffer& psfAmplitude() const {
+    return m_psfAmplitude;
+  }
+
+  /**
+   * @brief Get the PSF intensity.
+   */
+  const Fourier::RealDftBuffer& psfIntensity() const {
+    return m_psfIntensity;
+  }
 
   /**
    * @brief Evaluate the pupil amplitude from the pupil mask and Zernike coefficients.
@@ -38,14 +61,14 @@ public:
     auto maskData = mask.data();
     auto zernikesData = zernikes.data();
     const auto size = m_alphas.size();
-    for (auto it = pupilAmplitude.begin(); it != pupilAmplitude.end(); ++it, ++maskData, zernikesData += size) {
+    for (auto it = m_pupilAmplitude.begin(); it != m_pupilAmplitude.end(); ++it, ++maskData, zernikesData += size) {
       if (*maskData != 0) {
         *it = evalPhase(*maskData, zernikesData);
       } else {
         *it = 0;
       }
     }
-    return pupilAmplitude;
+    return m_pupilAmplitude;
   }
 
   /**
@@ -86,7 +109,7 @@ private:
   double m_minusTwoPiOverLambda;
   std::vector<double> m_alphas;
   Fourier::ComplexDft m_pupilToPsf;
-  Fourier::ComplexDftBuffer& pupilAmplitude;
+  Fourier::ComplexDftBuffer& m_pupilAmplitude;
   Fourier::ComplexDftBuffer& m_psfAmplitude;
   Fourier::RealDftBuffer m_psfIntensity;
 };
