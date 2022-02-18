@@ -21,12 +21,37 @@ struct DftBufferData {
 
 public:
   /**
+   * @brief The concrete container type.
+   */
+  using Container = T*;
+
+  /**
    * @brief Constructor.
    * @details
    * Allocate some memory if `data = nullptr`.
    */
   DftBufferData(std::size_t size, T* data = nullptr) :
-      m_shared(data), m_size(size), m_data(data ? data : FftwAllocator::allocateBuffer<T>(m_size)) {}
+      m_shared(data), m_size(size), m_container(data ? data : FftwAllocator::allocateBuffer<T>(m_size)) {}
+
+  /**
+   * @brief Non-copyable.
+   */
+  DftBufferData(const DftBufferData&) = delete;
+
+  /**
+   * @brief Movable.
+   */
+  DftBufferData(DftBufferData&&) = default;
+
+  /**
+   * @brief Non-copyable.
+   */
+  DftBufferData& operator=(const DftBufferData&) = delete;
+
+  /**
+   * @brief Movable.
+   */
+  DftBufferData& operator=(DftBufferData&&) = default;
 
   /**
    * @brief Destructor.
@@ -34,8 +59,9 @@ public:
    * Free memory if needed.
    */
   ~DftBufferData() {
-    if (not m_shared) {
-      FftwAllocator::freeBuffer(data);
+    if (owns()) {
+      FftwAllocator::freeBuffer(m_container);
+      m_container = nullptr;
     }
   }
 
@@ -50,10 +76,17 @@ public:
    * @brief Get the data pointer.
    */
   const T* data() const {
-    return m_data;
+    return m_container;
   }
 
-private:
+  /**
+   * @brief Check whether the data is owned by this object.
+   */
+  bool owns() const {
+    return m_container && not m_shared;
+  }
+
+protected:
   /**
    * @brief Is the data shared?
    */
@@ -67,7 +100,7 @@ private:
   /**
    * @brief The data pointer.
    */
-  T* m_data;
+  T* m_container;
 };
 
 /**
@@ -82,6 +115,16 @@ using Position = Euclid::Fits::Position<2>;
  */
 template <typename T>
 using DftBuffer = Euclid::Fits::Raster<T, 2, DftBufferData<T>>;
+
+/**
+ * @brief Specialization for `double`.
+ */
+using RealDftBuffer = DftBuffer<double>;
+
+/**
+ * @brief Specialization for `std::complex<double>`.
+ */
+using ComplexDftBuffer = DftBuffer<std::complex<double>>;
 
 } // namespace Fourier
 } // namespace Phi

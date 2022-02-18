@@ -11,6 +11,20 @@
 namespace Phi {
 namespace Fourier {
 
+/// @cond
+namespace Internal {
+
+/**
+ * @brief Allocate a plan.
+ * @warning
+ * This does not instantiate the singleton, as opposed to `FftwAllocator::createPlan()`.
+ */
+template <typename TType, typename TIn, typename TOut>
+fftw_plan allocateFftwPlan(TIn& in, TOut& out);
+
+} // namespace Internal
+/// @endcond
+
 /**
  * @brief Thread-safe singleton class to ensure proper FFTW memory management.
  * @details
@@ -73,6 +87,12 @@ public:
   }
 
   /**
+   * @brief Specialization for constant data (does nothing).
+   */
+  template <typename T>
+  static void freeBuffer(const T*) {}
+
+  /**
    * @brief Create a plan.
    * @warning
    * `in` and `out` are filled with garbage.
@@ -80,7 +100,7 @@ public:
   template <typename TType, typename TIn, typename TOut>
   static fftw_plan createPlan(TIn& in, TOut& out) {
     instantiate();
-    return allocateFftwPlan(in, out);
+    return Internal::allocateFftwPlan<TType>(in, out);
   }
 
   /**
@@ -90,20 +110,6 @@ public:
     fftw_destroy_plan(plan);
   }
 };
-
-/// @cond
-namespace Internal {
-
-/**
- * @brief Allocate a plan.
- * @warning
- * This does not instantiate the singleton, as opposed to `FftwAllocator::createPlan()`.
- */
-template <typename TType, typename TIn, typename TOut>
-fftw_plan allocateFftwPlan(TIn& in, TOut& out);
-
-} // namespace Internal
-/// @endcond
 
 } // namespace Fourier
 } // namespace Phi

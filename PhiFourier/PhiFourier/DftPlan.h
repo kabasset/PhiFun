@@ -111,7 +111,6 @@ public:
    */
   ~DftPlan() {
     FftwAllocator::destroyPlan(m_plan);
-    fftw_destroy_plan(m_plan);
   }
 
   /**
@@ -127,7 +126,7 @@ public:
    * which means that the buffers of the inverse plan (`idft`) has the same life cycle.
    */
   Inverse inverse() {
-    return {m_shape, m_out.data(), m_in.data()};
+    return Inverse {m_shape, m_out.data(), m_in.data()};
   }
 
   /**
@@ -217,9 +216,9 @@ public:
    * @brief Divide by the output buffer by the normalization factor.
    */
   DftPlan& normalize() {
-    const auto factor = normalizationFactor();
+    const auto factor = 1. / normalizationFactor();
     for (auto& c : m_out) {
-      c /= factor;
+      c *= factor;
     }
     return *this;
   }
