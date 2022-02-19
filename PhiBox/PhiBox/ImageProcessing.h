@@ -8,7 +8,7 @@
 #define _PHIBOX_IMAGEPROCESSING_H
 
 namespace Phi {
-namespace Box {
+namespace Image {
 
 template <typename U, typename TRaster>
 U bilinear(const TRaster& raster, double x, double y) {
@@ -27,7 +27,7 @@ U bilinear(const TRaster& raster, double x, double y) {
   return *bl + (*br - *bl + (*bl + *tr - *br - *tl) * dy) * dx + (*tl - *bl) * dy;
 }
 
-} // namespace Box
+} // namespace Image
 } // namespace Phi
 
 #endif // _PHIBOX_IMAGEPROCESSING_H

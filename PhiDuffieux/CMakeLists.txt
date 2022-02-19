@@ -13,7 +13,7 @@ elements_subdir(PhiDuffieux)
 #   For creating a dependency onto an other accessible module
 #         elements_depends_on_subdirs(ElementsKernel)
 #===============================================================================
-elements_depends_on_subdirs(PhiZernike PhiFourier)
+elements_depends_on_subdirs(PhiZernike PhiFourier PhiBox)
 elements_depends_on_subdirs(ElementsKernel)
 
 #===============================================================================
@@ -32,8 +32,8 @@ elements_depends_on_subdirs(ElementsKernel)
 #                     PUBLIC_HEADERS ElementsExamples)
 #===============================================================================
 elements_add_library(PhiDuffieux src/lib/*.cpp
-                     INCLUDE_DIRS PhiZernike PhiFourier ElementsKernel
-                     LINK_LIBRARIES PhiZernike PhiFourier ElementsKernel
+                     INCLUDE_DIRS PhiZernike PhiFourier PhiBox ElementsKernel
+                     LINK_LIBRARIES PhiZernike PhiFourier PhiBox ElementsKernel
                      PUBLIC_HEADERS PhiDuffieux)
 
 #===============================================================================

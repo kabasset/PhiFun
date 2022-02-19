@@ -7,7 +7,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-using namespace Phi::Box;
+using namespace Phi::Image;
 
 //-----------------------------------------------------------------------------
 
@@ -16,7 +16,7 @@ BOOST_AUTO_TEST_SUITE(ImageProcessing_test)
 //-----------------------------------------------------------------------------
 
 BOOST_AUTO_TEST_CASE(bilinear_test) {
-  const Euclid::Fits::VecRaster<int> input({2, 2}, std::vector<int> {0, 2, 2, 1});
+  const Euclid::Fits::VecRaster<int> input({2, 2}, std::vector<int> {0, 2, 3, 1});
   Euclid::Fits::VecRaster<double> output({100, 50});
   const double xFactor = 1. / (output.length<0>() - 1);
   const double yFactor = 1. / (output.length<1>() - 1);
@@ -26,8 +26,8 @@ BOOST_AUTO_TEST_CASE(bilinear_test) {
 
   // FIXME Strict equality?
   BOOST_TEST((output[{0, 0}]) == 0);
-  BOOST_TEST((output.at({0, -1})) == 2);
   BOOST_TEST((output.at({-1, 0})) == 2);
+  BOOST_TEST((output.at({0, -1})) == 3);
   BOOST_TEST((output.at({-1, -1})) == 1);
 
   Euclid::Fits::SifFile f("/tmp/bilinear.fits", Euclid::Fits::FileMode::Overwrite);

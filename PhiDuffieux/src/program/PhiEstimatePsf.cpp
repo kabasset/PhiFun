@@ -69,6 +69,7 @@ public:
     options.named("side", value<long>()->default_value(1024), "Pupil mask side");
     options.named("radius", value<long>()->default_value(256), "Pupil radius");
     options.named("alphas", value<long>()->default_value(40), "Number of Zernike indices");
+    options.named("out", value<long>()->default_value(300), "Output PSF side");
 
     options.named("mask", value<std::string>()->default_value("/tmp/mask.fits"), "Pupil mask file");
     options.named("zernike", value<std::string>()->default_value("/tmp/zernike.fits"), "Zernike polynomials file");
@@ -86,6 +87,7 @@ public:
     const auto maskSide = args["side"].as<long>();
     const auto pupilRadius = args["radius"].as<long>();
     const auto alphaCount = args["alphas"].as<long>();
+    const auto psfSide = args["out"].as<long>();
     const auto maskFilename = args["mask"].as<std::string>();
     const auto zernikeFilename = args["zernike"].as<std::string>();
     const auto opticsFilename = args["optics"].as<std::string>();
@@ -132,7 +134,7 @@ public:
 
     logger.info("Planning system DFT and allocating memory...");
     chrono.start();
-    Duffieux::MonochromaticSystem system(optics);
+    Duffieux::MonochromaticSystem system(optics, psfSide);
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
 
@@ -159,7 +161,7 @@ public:
     chrono.start();
     const Fourier::Position halfShape {(intensity.shape()[0] + 1) / 2, intensity.shape()[1]};
     Fourier::ComplexDftBuffer nonOpticalTf(halfShape);
-    // FIXME fill
+    std::fill(nonOpticalTf.begin(), nonOpticalTf.end(), std::complex<double>(1, 0)); // FIXME
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
 
@@ -172,6 +174,12 @@ public:
     logger.info("Computing system transfer function (pixel-wise multiplication)...");
     chrono.start();
     system.evalSystemTf(nonOpticalTf);
+    chrono.stop();
+    logger.info() << "  " << chrono.last().count() << "ms";
+
+    logger.info("Wrapping system transfer function (wrapping)...");
+    chrono.start();
+    system.wrapSystemTf();
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
 
