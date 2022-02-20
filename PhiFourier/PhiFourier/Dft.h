@@ -143,14 +143,14 @@ void swapRanges(TIter aBegin, TIter aEnd, TIter bBegin) {
 /// @endcond
 
 /**
- * @brief Swap the quadrants of a raster.
+ * @brief Swap the quadrants of a raster in place.
  */
 template <typename TRaster>
-TRaster& fftShift(TRaster& raster) {
+TRaster& shiftDft(TRaster& raster) {
   const auto width = raster.shape()[0];
   const auto height = raster.shape()[1];
   if (width % 2 != 0 || height % 2 != 0) {
-    throw std::runtime_error("fftShift() only works with even sizes as of today.");
+    throw std::runtime_error("shiftDft() only works with even sizes as of today.");
   }
   const long halfWidth = raster.shape()[0] / 2;
   const long halfHeight = raster.shape()[1] / 2;
@@ -171,6 +171,29 @@ TRaster& fftShift(TRaster& raster) {
   }
 
   return raster;
+}
+
+/**
+ * @brief Apply the norm squared to each element of a raster.
+ */
+template <typename TComplexRaster, typename TRealRaster>
+TRealRaster& norm2(const TComplexRaster& input, TRealRaster& output) {
+  output.generate(
+      [](const std::complex<double>& c) {
+        return std::norm(c);
+      },
+      input);
+  return output;
+}
+
+/**
+ * @copybrief norm2()
+ */
+template <typename TComplexRaster>
+Euclid::Fits::VecRaster<double> norm2(const TComplexRaster& input) {
+  Euclid::Fits::VecRaster<double> output(input.shape());
+  norm2(input, output);
+  return output;
 }
 
 } // namespace Fourier

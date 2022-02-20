@@ -7,7 +7,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-using namespace Phi::Image;
+using namespace Phi::Image2D;
 
 //-----------------------------------------------------------------------------
 

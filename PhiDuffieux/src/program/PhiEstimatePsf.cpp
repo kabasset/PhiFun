@@ -2,7 +2,7 @@
 // This file is part of PhiFun <github.com/kabasset/PhiFun>
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-#include "EleFits/SifFile.h"
+#include "EleFits/MefFile.h"
 #include "EleFitsData/TestRaster.h"
 #include "EleFitsUtils/ProgramOptions.h"
 #include "EleFitsValidation/Chronometer.h"
@@ -38,21 +38,6 @@ Euclid::Fits::VecRaster<double> generatePupil(long maskSide, long pupilRadius) {
 }
 
 /**
- * @brief Save as a SIF file.
- * @details
- * Does nothing if filename is empty.
- */
-template <typename TRaster>
-void saveSif(const TRaster& raster, const std::string& filename) {
-  if (filename == "") {
-    return;
-  }
-  Euclid::Fits::SifFile f(filename, Euclid::Fits::FileMode::Overwrite);
-  f.writeRaster(raster);
-  logger.info() << "  See: " << filename;
-}
-
-/**
  * @brief The program.
  */
 class PhiEstimatePsf : public Elements::Program {
@@ -66,15 +51,12 @@ public:
     Euclid::Fits::ProgramOptions options(
         "Compute a monochromatic PSF from a pupil mask and randmom Zernike coefficients.");
 
-    options.named("side", value<long>()->default_value(1024), "Pupil mask side");
-    options.named("radius", value<long>()->default_value(256), "Pupil radius");
     options.named("alphas", value<long>()->default_value(40), "Number of Zernike indices");
-    options.named("out", value<long>()->default_value(300), "Output PSF side");
+    options.named("mask", value<long>()->default_value(1024), "Pupil mask diameter");
+    options.named("pupil", value<long>()->default_value(512), "Pupil diameter");
+    options.named("psf", value<long>()->default_value(300), "Output PSF diameter");
 
-    options.named("mask", value<std::string>()->default_value("/tmp/mask.fits"), "Pupil mask file");
-    options.named("zernike", value<std::string>()->default_value("/tmp/zernike.fits"), "Zernike polynomials file");
-    options.named("optics", value<std::string>()->default_value("/tmp/optics.fits"), "Optical PSF file");
-    options.named("system", value<std::string>()->default_value("/tmp/system.fits"), "System PSF file");
+    options.named("output", value<std::string>()->default_value("/tmp/psf.fits"), "Output file");
 
     return options.asPair();
   }
@@ -84,14 +66,12 @@ public:
    */
   ExitCode mainMethod(std::map<std::string, VariableValue>& args) override {
 
-    const auto maskSide = args["side"].as<long>();
-    const auto pupilRadius = args["radius"].as<long>();
     const auto alphaCount = args["alphas"].as<long>();
-    const auto psfSide = args["out"].as<long>();
-    const auto maskFilename = args["mask"].as<std::string>();
-    const auto zernikeFilename = args["zernike"].as<std::string>();
-    const auto opticsFilename = args["optics"].as<std::string>();
-    const auto systemFilename = args["system"].as<std::string>();
+    const auto maskSide = args["mask"].as<long>();
+    const auto pupilDiameter = args["pupil"].as<long>();
+    const auto psfSide = args["psf"].as<long>();
+
+    Euclid::Fits::MefFile f(args["output"].as<std::string>(), Euclid::Fits::FileMode::Overwrite);
 
     using Chrono = Euclid::Fits::Validation::Chronometer<std::chrono::milliseconds>;
     Chrono chrono;
@@ -99,21 +79,21 @@ public:
     logger.info("Generating pupil mask...");
     // FIXME load if exists, generate and save otherwise
     chrono.start();
-    auto pupil = generatePupil(maskSide, pupilRadius);
+    auto pupil = generatePupil(maskSide, pupilDiameter / 2);
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
-    saveSif(pupil, maskFilename);
+    f.appendImage("Pupil mask", {}, pupil);
 
     logger.info("Generating Zernike polynomials...");
     chrono.start();
-    auto zernike = Zernike::basis(maskSide, alphaCount);
+    const auto& zernike = Zernike::basis(maskSide, alphaCount);
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
-    Euclid::Fits::VecRaster<double, 3> zernikeDisp({maskSide, maskSide, alphaCount});
-    for (const auto& p : zernikeDisp.domain()) {
-      zernikeDisp[p] = zernike[{p[2], p[0], p[1]}];
-    }
-    saveSif(zernikeDisp, zernikeFilename);
+    // Euclid::Fits::VecRaster<double, 3> zernikeDisp({maskSide, maskSide, alphaCount});
+    // for (const auto& p : zernikeDisp.domain()) {
+    //   zernikeDisp[p] = zernike[{p[2], p[0], p[1]}];
+    // }
+    // f.appendImage("Zernike basis", {}, zernikeDisp);
 
     logger.info("Generating Zernike coefficients...");
     chrono.start();
@@ -138,57 +118,62 @@ public:
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
 
-    chrono.start();
     logger.info("Computing pupil amplitude (complex exp)...");
-    optics.evalPupilAmplitude(pupil, zernike);
+    chrono.start();
+    const auto& pupilAmplitude = optics.evalPupilAmplitude(pupil, zernike);
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
+    f.appendImage("Pupil intensity", {}, Fourier::norm2(pupilAmplitude));
 
     logger.info("Computing PSF amplitude (complex DFT)...");
     chrono.start();
-    optics.evalPsfAmplitude();
+    const auto& psfAmplitude = optics.evalPsfAmplitude();
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
 
     logger.info("Computing PSF intensity (norm)...");
     chrono.start();
-    auto& intensity = optics.evalPsfIntensity();
+    const auto& intensity = optics.evalPsfIntensity();
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
-    saveSif(fftShift(intensity), opticsFilename);
+    f.appendImage("Optical PSF intensity", {}, intensity);
 
-    logger.info("Generating non-optical PSF...");
+    logger.info("Computing optical transfer function (real DFT)...");
+    chrono.start();
+    const auto& opticalTf = system.evalOpticalTf();
+    chrono.stop();
+    logger.info() << "  " << chrono.last().count() << "ms";
+    f.appendImage("Optical TF intensity", {}, norm2(opticalTf));
+
+    logger.info("Generating non-optical transfer function...");
     chrono.start();
     const Fourier::Position halfShape {(intensity.shape()[0] + 1) / 2, intensity.shape()[1]};
     Fourier::ComplexDftBuffer nonOpticalTf(halfShape);
     std::fill(nonOpticalTf.begin(), nonOpticalTf.end(), std::complex<double>(1, 0)); // FIXME
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
-
-    logger.info("Computing optical transfer function (real DFT)...");
-    chrono.start();
-    system.evalOpticalTf();
-    chrono.stop();
-    logger.info() << "  " << chrono.last().count() << "ms";
+    f.appendImage("Non-optical TF intensity", {}, norm2(nonOpticalTf));
 
     logger.info("Computing system transfer function (pixel-wise multiplication)...");
     chrono.start();
-    system.evalSystemTf(nonOpticalTf);
+    const auto& stf = system.evalSystemTf(nonOpticalTf);
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
+    f.appendImage("System TF intensity", {}, norm2(stf));
 
     logger.info("Wrapping system transfer function (wrapping)...");
     chrono.start();
-    system.wrapSystemTf();
+    const auto& wrappedTf = system.wrapSystemTf();
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
+    f.appendImage("Wrapped system TF intensity", {}, norm2(wrappedTf));
 
     logger.info("Computing system PSF (inverse real DFT)...");
     chrono.start();
-    auto& psf = system.evalSystemPsf();
+    const auto& psf = system.evalSystemPsf();
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
-    saveSif(psf, systemFilename); // FIXME fftShift()
+    f.appendImage("System PSF", {}, psf);
 
     logger.info("Done.");
     return ExitCode::OK;

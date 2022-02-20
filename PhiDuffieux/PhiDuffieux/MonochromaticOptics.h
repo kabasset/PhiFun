@@ -83,11 +83,7 @@ public:
    * @brief Evaluate the PSF intensity as the norm squared of the PSF amplitude.
    */
   Fourier::RealDftBuffer& evalPsfIntensity() {
-    m_psfIntensity.generate(
-        [](const auto& amp) {
-          return std::norm(amp);
-        },
-        m_psfAmplitude);
+    norm2(m_psfAmplitude, m_psfIntensity);
     return m_psfIntensity;
   }
 

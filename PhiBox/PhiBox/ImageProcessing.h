@@ -8,7 +8,7 @@
 #define _PHIBOX_IMAGEPROCESSING_H
 
 namespace Phi {
-namespace Image {
+namespace Image2D {
 
 template <typename U, typename TRaster>
 U bilinear(const TRaster& raster, double x, double y) {
@@ -24,10 +24,14 @@ U bilinear(const TRaster& raster, double x, double y) {
   const T* br = bl + 1;
   const T* tl = bl + raster.template length<0>();
   const T* tr = tl + 1;
+  // const T b = *bl * dx + *br * (1. - dx);
+  // const T t = *tl * dx + *tr * (1. - dx);
+  // return b * dy + t * (1. - dy);
+  // return (*bl * dx + *br * (1. - *dx)) * dy + (*tl * dx + *tr * (1. - dx)) * (1. - dy);
   return *bl + (*br - *bl + (*bl + *tr - *br - *tl) * dy) * dx + (*tl - *bl) * dy;
 }
 
-} // namespace Image
+} // namespace Image2D
 } // namespace Phi
 
 #endif // _PHIBOX_IMAGEPROCESSING_H

@@ -126,6 +126,17 @@ using RealDftBuffer = DftBuffer<double>;
  */
 using ComplexDftBuffer = DftBuffer<std::complex<double>>;
 
+/**
+ * @brief Multiply by a buffer.
+ */
+template <typename T>
+DftBuffer<T>& operator*=(DftBuffer<T>& lhs, const DftBuffer<T>& rhs) {
+  std::transform(lhs.begin(), lhs.end(), rhs.begin(), lhs.begin(), [](const T& l, const T& r) {
+    return l * r;
+  });
+  return lhs;
+}
+
 } // namespace Fourier
 } // namespace Phi
 

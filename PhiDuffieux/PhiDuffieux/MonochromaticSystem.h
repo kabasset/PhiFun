@@ -24,11 +24,7 @@ public:
   }
 
   const Fourier::ComplexDftBuffer& evalSystemTf(const Fourier::ComplexDftBuffer& nonOpticalTf) {
-    m_stf.apply(
-        [](const auto optical, const auto others) {
-          return optical * others;
-        },
-        nonOpticalTf);
+    m_stf *= nonOpticalTf;
     return m_stf;
   }
 
@@ -42,14 +38,14 @@ public:
       const double v = yFactor * y;
       for (long x = 0; x < width; ++x, ++it) {
         const double u = xFactor * x;
-        *it = Image::bilinear<std::complex<double>>(m_stf, u, v);
+        *it = Image2D::bilinear<std::complex<double>>(m_stf, u, v);
       }
     }
     return m_tfToPsf.in();
   }
 
   const Fourier::RealDftBuffer& evalSystemPsf() {
-    m_tfToPsf.transform();
+    m_tfToPsf.transform().normalize();
     return m_tfToPsf.out();
   }
 
