@@ -13,21 +13,19 @@ namespace Image2D {
 template <typename U, typename TRaster>
 U bilinear(const TRaster& raster, double x, double y) {
   using T = typename TRaster::Value;
-  const long left = x;
-  const long bottom = y;
+  const long left = x < 0 ? 0 : x;
+  const long bottom = y < 0 ? 0 : y;
   const T* bl = &raster[{left, bottom}];
   if (x == left && y == bottom) { // No interpolation
     return *bl;
   }
   const double dx = x - left;
   const double dy = y - bottom;
-  const T* br = bl + 1;
-  const T* tl = bl + raster.template length<0>();
-  const T* tr = tl + 1;
-  // const T b = *bl * dx + *br * (1. - dx);
-  // const T t = *tl * dx + *tr * (1. - dx);
-  // return b * dy + t * (1. - dy);
-  // return (*bl * dx + *br * (1. - *dx)) * dy + (*tl * dx + *tr * (1. - dx)) * (1. - dy);
+  const long width = raster.template length<0>();
+  const long height = raster.template length<1>();
+  const T* br = x >= width ? bl : bl + 1;
+  const T* tl = y >= height ? bl : bl + width;
+  const T* tr = x >= width ? tl : tl + 1;
   return *bl + (*br - *bl + (*bl + *tr - *br - *tl) * dy) * dx + (*tl - *bl) * dy;
 }
 

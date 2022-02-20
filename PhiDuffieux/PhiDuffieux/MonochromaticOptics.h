@@ -75,7 +75,7 @@ public:
    * @brief Evaluate the PSF amplitude as the DFT of the pupil amplitude.
    */
   Fourier::ComplexDftBuffer& evalPsfAmplitude() {
-    m_pupilToPsf.transform();
+    m_pupilToPsf.transform().normalize();
     return m_psfAmplitude;
   }
 

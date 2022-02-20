@@ -101,9 +101,12 @@ public:
     Euclid::Fits::Test::RandomRaster<double, 1>({alphaCount}, -1, 1).moveTo(alphas);
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
-    logger.debug() << "  Coefficients:";
-    for (const auto& a : alphas) {
-      logger.debug() << "    " << a;
+    for (std::size_t i = 0; i < alphas.size(); ++i) {
+      f.primary().header().write(
+          "ALPHA_" + std::to_string(i),
+          alphas[i],
+          "um",
+          "Zernike coefficient " + std::to_string(i));
     }
 
     logger.info("Planning optical DFT and allocating memory...");
@@ -149,7 +152,7 @@ public:
     chrono.start();
     const Fourier::Position halfShape {(intensity.shape()[0] + 1) / 2, intensity.shape()[1]};
     Fourier::ComplexDftBuffer nonOpticalTf(halfShape);
-    std::fill(nonOpticalTf.begin(), nonOpticalTf.end(), std::complex<double>(1, 0)); // FIXME
+    std::fill(nonOpticalTf.begin(), nonOpticalTf.end(), 1.); // FIXME
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
     f.appendImage("Non-optical TF intensity", {}, norm2(nonOpticalTf));
