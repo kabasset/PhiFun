@@ -19,6 +19,11 @@ class MonochromaticOptics {
 
   friend class MonochromaticSystem;
 
+  /**
+   * @brief 3.14 ;)
+   */
+  static constexpr double m_pi = std::acos(-1.);
+
 public:
   /**
    * @brief Constructor.
@@ -27,7 +32,7 @@ public:
    * @param alphas The Zernike coefficients
    */
   MonochromaticOptics(double lambda, long diameter, std::vector<double> alphas) :
-      m_minusTwoPiOverLambda(-2 * 3.1415926 / lambda), m_alphas(std::move(alphas)), m_pupilToPsf({diameter, diameter}),
+      m_wavenumber(2 * m_pi / lambda), m_alphas(std::move(alphas)), m_pupilToPsf({diameter, diameter}),
       m_pupilAmplitude(m_pupilToPsf.in()), m_psfAmplitude(m_pupilToPsf.out()), m_psfIntensity({diameter, diameter}) {}
 
   /**
@@ -94,15 +99,15 @@ private:
    * @param zernikes The local Zernike basis values
    */
   std::complex<double> evalPhase(double mask, const double* zernikes) {
-    double sum = 0;
+    double minusPhi = 0;
     auto zIt = zernikes;
     for (auto aIt = m_alphas.begin(); aIt != m_alphas.end(); ++aIt, ++zIt) {
-      sum += (*aIt) * (*zIt);
+      minusPhi -= (*aIt) * (*zIt);
     }
-    return mask * std::exp(std::complex<double>(0, m_minusTwoPiOverLambda * sum));
+    return mask * std::exp(std::complex<double>(0, m_wavenumber * minusPhi));
   }
 
-  double m_minusTwoPiOverLambda;
+  double m_wavenumber;
   std::vector<double> m_alphas;
   Fourier::ComplexDft m_pupilToPsf;
   Fourier::ComplexDftBuffer& m_pupilAmplitude;
