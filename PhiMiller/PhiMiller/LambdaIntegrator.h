@@ -69,12 +69,68 @@ public:
   }
 
   /**
+   * @brief Compute the second derivatives at knots.
+   */
+  template <typename T>
+  std::vector<T> knotZ(const T* y) {
+    const auto m_h0 = m_h[0]; // FIXME as members
+    const auto m_h1 = m_h[1];
+    const auto m_h02 = m_h0 * m_h0;
+    const auto m_h12 = m_h1 * m_h1;
+    const auto m_h01 = m_h0 * m_h1;
+    const auto m_hm0 = m_h[m_size - 1];
+    const auto m_hm1 = m_h[m_size - 2];
+    const auto m_hm02 = m_hm0 * m_hm0;
+    const auto m_hm12 = m_hm1 * m_hm1;
+    const auto m_hm01 = m_hm0 * m_hm1;
+
+    std::vector<T> s(m_size);
+    std::vector<T> z(m_size);
+    s[0] = (y[1] - y[0]) / m_h0; // Because next loop starts at 1
+    for (std::size_t i = 1; i < m_size - 1; ++i) {
+      s[i] = (y[i + 1] - y[i]) / m_h[i];
+      z[i] = (y[i + 1] - y[i]) / m_h[i] - (y[i] - y[i - 1]) / m_h[i - 1];
+    } // FIXME optimize with iterators
+
+    // Not-a-knot at 0
+    const auto s0 = s[0];
+    const auto s1 = s[1];
+    const auto z1 = z[1];
+    z[0] = (6. * m_h1 * (s1 - s0) - (2 * m_h02 + 3 * m_h01 + m_h12) * z1) / (m_h02 - m_h12);
+
+    // Not-a-knot at m_size - 1
+    const auto sm0 = s[m_size - 1];
+    const auto sm1 = s[m_size - 2];
+    const auto zm1 = z[m_size - 2];
+    z[m_size - 1] = (6. * m_hm0 * (sm0 - sm1) - (m_hm02 - m_hm12) * zm1) / (2. * m_hm02 + 3 * m_hm01 + m_hm12);
+
+    return z;
+  }
+
+  /**
+   * @brief Interpolate.
+   * @param y The values at knots
+   * @param z The second derivatives at knots
+   */
+  template <typename T>
+  std::vector<T> interpolate(const T* y, const T* z) {
+    std::size_t j = 0;
+    for (std::size_t i = 0; i < m_size; ++i) {
+      for (std::size_t n = 0; n < m_i[i]; ++n) {
+        // FIXME constant-based formulae of Edo
+        ++j;
+      }
+    }
+  }
+
+  /**
    * @brief Interpolate and integrate given values.
-   * @param y The knots y's
+   * @param y The values at knots
+   * @param z The second derivatives at knots
    * @param w The weights
    */
   template <typename T>
-  T operator()(const T* y, const double* w);
+  T integrate(const T* y, const T* z, const double* w);
 
 private:
   struct Constants {
