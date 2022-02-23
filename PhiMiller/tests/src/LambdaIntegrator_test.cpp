@@ -5,6 +5,7 @@
 #include "PhiMiller/LambdaIntegrator.h"
 
 #include <boost/test/unit_test.hpp>
+#include <numeric> // inner_product
 
 using namespace Phi::Miller;
 
@@ -25,6 +26,7 @@ BOOST_AUTO_TEST_CASE(constant_interpolation_test) {
   const std::vector<double> y(u.size(), 3.14);
   const auto z = integrator.knotZ(y.data());
   const auto s = integrator.interpolate(y.data(), z.data());
+  BOOST_TEST(s.size() == x.size());
   for (const auto v : s) {
     testApprox(v, 3.14);
   }
@@ -40,6 +42,7 @@ BOOST_AUTO_TEST_CASE(affine_interpolation_test) {
   });
   const auto z = integrator.knotZ(y.data());
   const auto s = integrator.interpolate(y.data(), z.data());
+  BOOST_TEST(s.size() == x.size());
   for (std::size_t i = 0; i < x.size(); ++i) {
     testApprox(s[i], 2. * x[i] + 1);
   }
@@ -58,9 +61,28 @@ BOOST_AUTO_TEST_CASE(sin_interpolation_test) {
   });
   const auto z = integrator.knotZ(y.data());
   const auto s = integrator.interpolate(y.data(), z.data());
+  BOOST_TEST(s.size() == x.size());
   for (std::size_t i = 0; i < x.size(); ++i) {
     testApprox(s[i], std::sin(x[i]), .1);
   }
+}
+
+BOOST_AUTO_TEST_CASE(linear_integration_test) {
+  const std::vector<double> u {0., 0.5, 1., 2., 4.};
+  const std::vector<double> x {0.0, 0.2, 1.5, 2.0, 2.3, 2.7, 3.0, 3.9};
+  SplineIntegrator integrator(u, x);
+  const std::vector<double> y(u.size(), 3.14);
+  const auto z = integrator.knotZ(y.data());
+  BOOST_TEST(z.size() == u.size());
+
+  const auto sum = integrator.integrate(y.data(), z.data(), x.data());
+  const auto expected = (0.2 + 1.5 + 2.0 + 2.3 + 2.7 + 3.0 + 3.9) * 3.14;
+  testApprox(sum, expected);
+
+  const auto s = integrator.interpolate(y.data(), z.data());
+  BOOST_TEST(s.size() == x.size());
+  const auto fromS = std::inner_product(s.begin(), s.end(), x.begin(), 0.);
+  testApprox(fromS, expected);
 }
 
 //-----------------------------------------------------------------------------

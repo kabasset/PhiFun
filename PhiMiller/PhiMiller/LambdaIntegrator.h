@@ -85,6 +85,7 @@ public:
     z[0] = (6. * (s1 - s0) - 2. * (m_h0 + m_h1) * z1 - m_h1 * z2) / m_h0;
 
     // Not-a-knot at m_size - 1
+    // FIXME Should it be at m_size?
     const auto sm0 = s[m_size - 1];
     const auto sm1 = s[m_size - 2];
     const auto zm1 = z[m_size - 1];
@@ -113,13 +114,28 @@ public:
   }
 
   /**
-   * @brief Interpolate and integrate given values.
+   * @brief Interpolate and integrate.
    * @param y The values at knots
    * @param z The second derivatives at knots
    * @param w The weights
    */
   template <typename T>
-  T integrate(const T* y, const T* z, const double* w);
+  T integrate(const T* y, const T* z, const double* w) {
+    T sum {};
+    std::size_t j = 0;
+    for (std::size_t i = 0; i < m_size; ++i) {
+      const auto y0 = y[i];
+      const auto y1 = y[i + 1];
+      const auto z0 = z[i];
+      const auto z1 = z[i + 1];
+      for (long n = 0; n < m_n[i]; ++n) {
+        const auto k = m_k[j];
+        sum += w[j] * (z1 * k.z1 + z0 * k.z0 + y1 * k.y1 + y0 * k.y0);
+        ++j;
+      }
+    }
+    return sum;
+  }
 
 private:
   /**
