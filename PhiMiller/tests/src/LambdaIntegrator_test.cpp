@@ -6,15 +6,61 @@
 
 #include <boost/test/unit_test.hpp>
 
+using namespace Phi::Miller;
+
+void testApprox(double value, double ref, double atol = 0.0001) {
+  BOOST_TEST(std::abs(value - ref) < atol);
+}
+
 //-----------------------------------------------------------------------------
 
 BOOST_AUTO_TEST_SUITE(LambdaIntegrator_test)
 
 //-----------------------------------------------------------------------------
 
-BOOST_AUTO_TEST_CASE(example_test) {
+BOOST_AUTO_TEST_CASE(constant_interpolation_test) {
+  const std::vector<double> u {0., 0.5, 1., 2., 4.};
+  const std::vector<double> x {0.0, 0.2, 1.5, 2.0, 2.3, 2.7, 3.0, 3.9};
+  SplineIntegrator integrator(u, x);
+  const std::vector<double> y(u.size(), 3.14);
+  const auto z = integrator.knotZ(y.data());
+  const auto s = integrator.interpolate(y.data(), z.data());
+  for (const auto v : s) {
+    testApprox(v, 3.14);
+  }
+}
 
-  BOOST_FAIL("!!!! Please implement your tests !!!!");
+BOOST_AUTO_TEST_CASE(affine_interpolation_test) {
+  const std::vector<double> u {0., 0.5, 1., 2., 4.};
+  const std::vector<double> x {0.0, 0.2, 1.5, 2.0, 2.3, 2.7, 3.0, 3.9};
+  SplineIntegrator integrator(u, x);
+  std::vector<double> y(u.size());
+  std::transform(u.begin(), u.end(), y.begin(), [](auto v) {
+    return 2. * v + 1.;
+  });
+  const auto z = integrator.knotZ(y.data());
+  const auto s = integrator.interpolate(y.data(), z.data());
+  for (std::size_t i = 0; i < x.size(); ++i) {
+    testApprox(s[i], 2. * x[i] + 1);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(sin_interpolation_test) {
+  const std::vector<double> u {0, 1, 2.5, 3.6, 5, 7, 8.1, 10};
+  std::vector<double> x(40);
+  for (std::size_t i = 0; i < x.size(); ++i) {
+    x[i] = .25 * i;
+  }
+  SplineIntegrator integrator(u, x);
+  std::vector<double> y(u.size());
+  std::transform(u.begin(), u.end(), y.begin(), [](auto v) {
+    return std::sin(v);
+  });
+  const auto z = integrator.knotZ(y.data());
+  const auto s = integrator.interpolate(y.data(), z.data());
+  for (std::size_t i = 0; i < x.size(); ++i) {
+    testApprox(s[i], std::sin(x[i]), .1);
+  }
 }
 
 //-----------------------------------------------------------------------------
