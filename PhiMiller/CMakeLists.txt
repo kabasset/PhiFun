@@ -13,7 +13,7 @@ elements_subdir(PhiMiller)
 #   For creating a dependency onto an other accessible module
 #         elements_depends_on_subdirs(ElementsKernel)
 #===============================================================================
-elements_depends_on_subdirs(ElementsKernel)
+elements_depends_on_subdirs(PhiBox EleFitsValidation)
 
 #===============================================================================
 # Add the find_package macro (a pure CMake command) here to locate the
@@ -31,8 +31,8 @@ elements_depends_on_subdirs(ElementsKernel)
 #                     PUBLIC_HEADERS ElementsExamples)
 #===============================================================================
 elements_add_library(PhiMiller src/lib/*.cpp
-                     INCLUDE_DIRS ElementsKernel
-                     LINK_LIBRARIES ElementsKernel
+                     INCLUDE_DIRS PhiBox
+                     LINK_LIBRARIES PhiBox
                      PUBLIC_HEADERS PhiMiller)
 
 #===============================================================================
@@ -42,6 +42,9 @@ elements_add_library(PhiMiller src/lib/*.cpp
 #                        INCLUDE_DIRS Boost ElementsExamples
 #                        LINK_LIBRARIES Boost ElementsExamples)
 #===============================================================================
+elements_add_executable(PhiTimeIntegration src/program/PhiTimeIntegration.cpp
+                     INCLUDE_DIRS PhiBox EleFitsValidation PhiMiller
+                     LINK_LIBRARIES PhiBox EleFitsValidation PhiMiller)
 
 #===============================================================================
 # Declare the Boost tests here
@@ -74,3 +77,4 @@ elements_add_unit_test(LambdaIntegrator tests/src/LambdaIntegrator_test.cpp
 # Examples:
 #          elements_install_conf_files()
 #===============================================================================
+elements_install_conf_files()

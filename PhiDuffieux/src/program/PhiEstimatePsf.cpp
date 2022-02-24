@@ -16,7 +16,7 @@
 
 using namespace Phi;
 
-using boost::program_options::value;
+using boost::program_options::value; // FIXME rm
 
 static Elements::Logging logger = Elements::Logging::getLogger("PhiEstimatePsf");
 

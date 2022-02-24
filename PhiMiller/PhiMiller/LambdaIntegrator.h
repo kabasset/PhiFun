@@ -65,10 +65,24 @@ public:
   }
 
   /**
+   * @brief Get the knot x's.
+   */
+  const std::vector<double>& knotX() const {
+    return m_u;
+  }
+
+  /**
+   * @brief Get the interpolation x's.
+   */
+  const std::vector<double>& interpolationX() const {
+    return m_x;
+  }
+
+  /**
    * @brief Compute the second derivatives at knots.
    */
   template <typename T>
-  std::vector<T> knotZ(const T* y) {
+  std::vector<T> knotZ(const T* y) const {
     std::vector<T> s(m_size);
     std::vector<T> z(m_size + 1);
     s[0] = (y[1] - y[0]) / m_h0; // Because next loop starts at 1
@@ -101,7 +115,7 @@ public:
    * @param z The second derivatives at knots
    */
   template <typename T>
-  std::vector<T> interpolate(const T* y, const T* z) {
+  std::vector<T> interpolate(const T* y, const T* z) const {
     std::vector<T> s(m_x.size());
     std::size_t j = 0;
     for (std::size_t i = 0; i < m_size; ++i) {
@@ -120,7 +134,7 @@ public:
    * @param w The weights
    */
   template <typename T>
-  T integrate(const T* y, const T* z, const double* w) {
+  T integrate(const T* y, const T* z, const double* w) const {
     T sum {};
     std::size_t j = 0;
     for (std::size_t i = 0; i < m_size; ++i) {

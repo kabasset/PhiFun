@@ -14,7 +14,6 @@ elements_subdir(PhiDuffieux)
 #         elements_depends_on_subdirs(ElementsKernel)
 #===============================================================================
 elements_depends_on_subdirs(PhiZernike PhiFourier PhiBox)
-elements_depends_on_subdirs(ElementsKernel)
 
 #===============================================================================
 # Add the find_package macro (a pure CMake command) here to locate the
@@ -32,8 +31,8 @@ elements_depends_on_subdirs(ElementsKernel)
 #                     PUBLIC_HEADERS ElementsExamples)
 #===============================================================================
 elements_add_library(PhiDuffieux src/lib/*.cpp
-                     INCLUDE_DIRS PhiZernike PhiFourier PhiBox ElementsKernel
-                     LINK_LIBRARIES PhiZernike PhiFourier PhiBox ElementsKernel
+                     INCLUDE_DIRS PhiZernike PhiFourier PhiBox
+                     LINK_LIBRARIES PhiZernike PhiFourier PhiBox
                      PUBLIC_HEADERS PhiDuffieux)
 
 #===============================================================================
@@ -44,8 +43,8 @@ elements_add_library(PhiDuffieux src/lib/*.cpp
 #                        LINK_LIBRARIES Boost ElementsExamples)
 #===============================================================================
 elements_add_executable(PhiEstimatePsf src/program/PhiEstimatePsf.cpp
-                     INCLUDE_DIRS ElementsKernel PhiDuffieux
-                     LINK_LIBRARIES ElementsKernel PhiDuffieux)
+                     INCLUDE_DIRS PhiDuffieux
+                     LINK_LIBRARIES PhiDuffieux)
 
 #===============================================================================
 # Declare the Boost tests here
