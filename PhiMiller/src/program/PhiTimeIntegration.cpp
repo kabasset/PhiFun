@@ -57,15 +57,16 @@ integrate(const Raster3D& input, const Miller::SplineIntegrator& integrator, con
   const auto depth = input.shape()[2];
   std::vector<std::complex<double>> y(depth);
   std::vector<std::complex<double>> z(depth);
-  auto it = output.begin();
-  for (long ij = 0; ij < size; ++ij, ++it) {
-    auto vData = y.data();
-    auto vIt = it;
-    for (long l = 0; l < depth; ++l, ++vData, vIt += size) {
-      *vData = *vIt;
+  auto oIt = output.begin();
+  auto iIt = input.begin();
+  const auto d = iIt - oIt;
+  for (long ij = 0; ij < size; ++ij, ++oIt, iIt = oIt + d) {
+    auto yIt = y.data();
+    for (long l = 0; l < depth; ++l, ++yIt, iIt += size) {
+      *yIt = *iIt;
     }
     z = integrator.knotZ(y.data());
-    *it = integrator.integrate(y.data(), z.data(), weights.data());
+    *oIt = integrator.integrate(y.data(), z.data(), weights.data());
   }
   return output;
 }
