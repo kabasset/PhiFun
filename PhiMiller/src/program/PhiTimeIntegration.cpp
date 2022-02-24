@@ -34,7 +34,7 @@ void warp(const Raster3D& input, Raster3D& output) {
       const double v = yFactor * j;
       for (long i = 0; i < width; ++i, ++it) {
         const double u = xFactor * i;
-        *it = Image2D::bilinear<std::complex<double>>(input, u, v, l);
+        *it = Image2D::bilinear<std::complex<double>>(input, u / l, v / l, l);
       }
     }
   }
@@ -89,7 +89,7 @@ void warpIntegrate(
     for (long i = 0; i < width; ++i, ++it) {
       const double u = xFactor * i;
       for (long l = 0; l < depth; ++l) {
-        y[l] = Image2D::bilinear<std::complex<double>>(input, u, v, l);
+        y[l] = Image2D::bilinear<std::complex<double>>(input, u / l, v / l, l);
       }
       z = integrator.knotZ(y.data());
       *it = integrator.integrate(y.data(), z.data(), weights.data());
