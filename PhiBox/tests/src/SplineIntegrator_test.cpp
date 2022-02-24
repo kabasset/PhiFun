@@ -2,12 +2,12 @@
 // This file is part of PhiFun <github.com/kabasset/PhiFun>
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-#include "PhiMiller/LambdaIntegrator.h"
+#include "PhiBox/SplineIntegrator.h"
 
 #include <boost/test/unit_test.hpp>
 #include <numeric> // inner_product
 
-using namespace Phi::Miller;
+using namespace Phi::Spline;
 
 void testApprox(double value, double ref, double atol = 0.0001) {
   BOOST_TEST(std::abs(value - ref) < atol);
@@ -15,7 +15,7 @@ void testApprox(double value, double ref, double atol = 0.0001) {
 
 //-----------------------------------------------------------------------------
 
-BOOST_AUTO_TEST_SUITE(LambdaIntegrator_test)
+BOOST_AUTO_TEST_SUITE(SplineIntegrator_test)
 
 //-----------------------------------------------------------------------------
 

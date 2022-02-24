@@ -13,7 +13,7 @@ elements_subdir(PhiBox)
 #   For creating a dependency onto an other accessible module
 #         elements_depends_on_subdirs(ElementsKernel)
 #===============================================================================
-elements_depends_on_subdirs(EleFits)
+elements_depends_on_subdirs(EleFits EleFitsValidation)
 
 #===============================================================================
 # Add the find_package macro (a pure CMake command) here to locate the
@@ -42,6 +42,9 @@ elements_add_library(PhiBox src/lib/*.cpp
 #                        INCLUDE_DIRS Boost ElementsExamples
 #                        LINK_LIBRARIES Boost ElementsExamples)
 #===============================================================================
+elements_add_executable(PhiTimeIntegration src/program/PhiTimeIntegration.cpp
+                     INCLUDE_DIRS PhiBox
+                     LINK_LIBRARIES PhiBox)
 
 #===============================================================================
 # Declare the Boost tests here
@@ -53,6 +56,10 @@ elements_add_library(PhiBox src/lib/*.cpp
 #===============================================================================
 elements_add_unit_test(ImageProcessing tests/src/ImageProcessing_test.cpp 
                      EXECUTABLE PhiBox_ImageProcessing_test
+                     LINK_LIBRARIES PhiBox
+                     TYPE Boost)
+elements_add_unit_test(SplineIntegrator tests/src/SplineIntegrator_test.cpp 
+                     EXECUTABLE PhiBox_SplineIntegrator_test
                      LINK_LIBRARIES PhiBox
                      TYPE Boost)
 
@@ -74,3 +81,4 @@ elements_add_unit_test(ImageProcessing tests/src/ImageProcessing_test.cpp
 # Examples:
 #          elements_install_conf_files()
 #===============================================================================
+elements_install_conf_files()

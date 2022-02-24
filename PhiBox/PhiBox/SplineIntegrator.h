@@ -2,22 +2,26 @@
 // This file is part of PhiFun <github.com/kabasset/PhiFun>
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-#ifndef _PHIMILLER_LAMBDAINTEGRATOR_H
-#define _PHIMILLER_LAMBDAINTEGRATOR_H
+#ifndef _PHIBOX_SPLINEINTEGRATOR_H
+#define _PHIBOX_SPLINEINTEGRATOR_H
 
 #include <complex>
 #include <vector>
 
 namespace Phi {
-namespace Miller {
+namespace Spline {
 
 /**
- * @brief Spline interpolation and integration as proposed by Lance Miller.
+ * @brief Spline interpolation and integration, inspired by a proposal by Lance Miller.
  * @details
+ * Although this class is generic, it was initially developped for TF integration.
+ * 
  * The monochromatic TFs are interpolated along lambdas at a few nanometers,
  * and then integrated along lambdas.
  * Lance Miller proposes to perform both operations at once,
- * i.e. for each position, compute the weight of interpolating splines and perform the summation,
+ * i.e. for each position, compute the weight of interpolating splines and perform the summation.
+ * The implementation is very different from that of Lance Miller,
+ * but the intent is similar and the results are the same.
  * 
  * For example, go directly from 40 monochromatic TFs to 1 broadband TF
  * instead of computing 200 interpolated TFs in-between.
@@ -213,7 +217,7 @@ private:
   std::vector<Coefficients> m_k;
 };
 
-} // namespace Miller
+} // namespace Spline
 } // namespace Phi
 
-#endif // _PHIMILLER_LAMBDAINTEGRATOR_H
+#endif // _PHIBOX_SPLINEINTEGRATOR_H

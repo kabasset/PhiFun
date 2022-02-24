@@ -8,7 +8,7 @@
 #include "EleFitsValidation/Chronometer.h"
 #include "ElementsKernel/ProgramHeaders.h"
 #include "PhiBox/ImageProcessing.h"
-#include "PhiMiller/LambdaIntegrator.h"
+#include "PhiBox/SplineIntegrator.h"
 
 #include <map>
 #include <string>
@@ -49,7 +49,7 @@ std::vector<double> linspace(double min, double sup, long count) {
 }
 
 Raster2D
-integrate(const Raster3D& input, const Miller::SplineIntegrator& integrator, const std::vector<double>& weights) {
+integrate(const Raster3D& input, const Spline::SplineIntegrator& integrator, const std::vector<double>& weights) {
   const auto width = input.shape()[0];
   const auto height = input.shape()[1];
   const auto size = width * height;
@@ -74,7 +74,7 @@ integrate(const Raster3D& input, const Miller::SplineIntegrator& integrator, con
 void warpIntegrate(
     const Raster3D& input,
     Raster2D& output,
-    const Miller::SplineIntegrator& integrator,
+    const Spline::SplineIntegrator& integrator,
     const std::vector<double>& weights) {
   const auto width = output.shape()[0];
   const auto height = output.shape()[1];
@@ -129,7 +129,7 @@ public:
 
     logger.info() << "Pre-computing integration coefficients...";
     chrono.start();
-    Miller::SplineIntegrator integrator(linspace(500., 900., lambdaCount), linspace(500., 900., stepCount));
+    Spline::SplineIntegrator integrator(linspace(500., 900., lambdaCount), linspace(500., 900., stepCount));
     const std::vector<double> weights(integrator.interpolationX().size(), 1.);
     chrono.stop();
     logger.info()
