@@ -33,13 +33,15 @@ public:
    * Precompute spline coefficients.
    */
   SplineIntegrator(std::vector<double> u, std::vector<double> x) :
-      m_size(u.size() - 1), m_u(std::move(u)), m_h(m_size), m_x(std::move(x)), m_n(m_size), m_k(m_x.size()) {
+      m_size(u.size() - 1), m_u(std::move(u)), m_h(m_size), m_g(m_size), m_x(std::move(x)), m_n(m_size),
+      m_k(m_x.size()) {
     // FIXME assert m_size > 3
     std::size_t j = 0;
     for (std::size_t i = 0; i < m_size; ++i) {
       const double hi = m_u[i + 1] - m_u[i];
       // FIXME assert hi > 0
       m_h[i] = hi;
+      m_g[i] = 1. / hi;
       while (j < m_k.size() && m_x[j] < m_u[i + 1]) {
         const double left = m_x[j] - m_u[i];
         const double right = m_u[i + 1] - m_x[j];
@@ -50,7 +52,7 @@ public:
         ++m_n[i];
         ++j;
       }
-    } // Could be optimized, e.g. with iterators, but executed only once
+    } // Could be optimized, e.g. with iterators, but executed only once and more readable this way
 
     m_h0 = m_h[0];
     m_h1 = m_h[1];
@@ -62,6 +64,8 @@ public:
     m_hm02 = m_hm0 * m_hm0;
     m_hm12 = m_hm1 * m_hm1;
     m_hm01 = m_hm0 * m_hm1;
+    m_g0 = m_g[0];
+    m_zm0Factor = 1. / (2. * m_hm0 * m_hm0 + 3 * m_hm0 * m_hm1 + m_hm1 * m_hm1);
   }
 
   /**
@@ -85,26 +89,31 @@ public:
   std::vector<T> knotZ(const T* y) const {
     std::vector<T> s(m_size);
     std::vector<T> z(m_size + 1);
-    s[0] = (y[1] - y[0]) / m_h0; // Because next loop starts at 1
-    for (std::size_t i = 1; i < m_size; ++i) {
-      s[i] = (y[i + 1] - y[i]) / m_h[i];
-      z[i] = (y[i + 1] - y[i]) / m_h[i] - (y[i] - y[i - 1]) / m_h[i - 1];
-    } // FIXME optimize with iterators
+    s[0] = (y[1] - y[0]) * m_g0; // Because next loop starts at 1
+    auto* yIt = y + 1;
+    auto* gIt = m_g.data() + 1;
+    auto* sIt = s.data() + 1;
+    auto* zIt = z.data() + 1;
+    for (auto i = m_size - 1; i--; ++yIt, ++gIt, ++sIt, ++zIt) {
+      // s[i] = (y[i + 1] - y[i]) / m_h[i];
+      *sIt = (*(yIt + 1) - *yIt) * *gIt;
+      // z[i] = (y[i + 1] - y[i]) / m_h[i] - (y[i] - y[i - 1]) / m_h[i - 1];
+      *zIt = *sIt - *(sIt - 1);
+    }
 
     // Not-a-knot at 0
     const auto s0 = s[0];
     const auto s1 = s[1];
     const auto z1 = z[1];
     const auto z2 = z[2];
-    z[0] = (6. * (s1 - s0) - 2. * (m_h0 + m_h1) * z1 - m_h1 * z2) / m_h0;
+    z[0] = (6. * (s1 - s0) - 2. * (m_h0 + m_h1) * z1 - m_h1 * z2) * m_g0;
 
     // Not-a-knot at m_size - 1
     // FIXME Should it be at m_size?
     const auto sm0 = s[m_size - 1];
     const auto sm1 = s[m_size - 2];
     const auto zm1 = z[m_size - 1];
-    z[m_size - 1] = (6. * m_hm0 * (sm0 - sm1) - (m_hm0 * m_hm0 - m_hm1 * m_hm1) * zm1) /
-        (2. * m_hm0 * m_hm0 + 3 * m_hm0 * m_hm1 + m_hm1 * m_hm1);
+    z[m_size - 1] = (6. * m_hm0 * (sm0 - sm1) - (m_hm02 - m_hm12) * zm1) * m_zm0Factor;
 
     return z;
   }
@@ -136,16 +145,14 @@ public:
   template <typename T>
   T integrate(const T* y, const T* z, const double* w) const {
     T sum {};
-    std::size_t j = 0;
-    for (std::size_t i = 0; i < m_size; ++i) {
-      const auto y0 = y[i];
-      const auto y1 = y[i + 1];
-      const auto z0 = z[i];
-      const auto z1 = z[i + 1];
-      for (long n = 0; n < m_n[i]; ++n) {
-        const auto k = m_k[j];
-        sum += w[j] * (z1 * k.z1 + z0 * k.z0 + y1 * k.y1 + y0 * k.y0);
-        ++j;
+    auto* yIt = y;
+    auto* zIt = z;
+    auto* wIt = w;
+    auto kIt = m_k.begin();
+    for (auto i = m_size; i--; ++yIt, ++zIt) {
+      for (auto n = m_n[i]; n--; ++wIt, ++kIt) {
+        // sum += w[j] * (z[i + 1] * m_k[i].z1 + z[i] * m_k[i].z0 + y[i + 1] * m_k[i].y1 + y[i] * m_k[i].y0);
+        sum += *wIt * (*(zIt + 1) * kIt->z1 + *zIt * kIt->z0 + *(yIt + 1) * kIt->y1 + *yIt * kIt->y0);
       }
     }
     return sum;
@@ -186,6 +193,9 @@ private:
   double m_hm02; ///< m_hm0 * m_hm0
   double m_hm12; ///< m_hm1 * m_hm1
   double m_hm01; ///< m_hm0 * m_hm1
+  std::vector<double> m_g; ///< Inverses of m_h[i]'s
+  double m_g0; ///< m_g[0]
+  double m_zm0Factor; ///< Normalization factor for z[m_size - 1]
 
   /**
    * @brief The integration x's.
