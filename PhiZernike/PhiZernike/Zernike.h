@@ -136,20 +136,20 @@ private:
 };
 
 /**
- * @brief Zernike basis.
+ * @brief Generate a Zernike basis.
+ * @param radius The unit circle radius in pixels
+ * @param side The side of the raster to be produced (can be larger than the circle)
+ * @param count The number of Zernike polynomials
  */
-Euclid::Fits::VecRaster<double, 3> basis(long side, long count = XySeries::JCount) {
+Euclid::Fits::VecRaster<double, 3> basis(long radius, long side, long count = XySeries::JCount) {
   Euclid::Fits::VecRaster<double, 3> raster({count, side, side});
-  const double center = .5 * side;
-  const double normalization = 1. / center;
+  const double normalization = 1. / radius;
   double* it = raster.data();
-  for (long y = -center; y < center; ++y) {
-    for (long x = -center; x < center; ++x, it += count) {
+  for (long y = -radius; y < radius; ++y) {
+    for (long x = -radius; x < radius; ++x, it += count) {
       const double u = normalization * x;
       const double v = normalization * y;
-      if (u * u + v * v > 1) {
-        std::fill(it, it + count, 0);
-      } else {
+      if (u * u + v * v <= 1) {
         XySeries series(u, v);
         series.fromTo<NollIndex>(0, count - 1, it); // FIXME allow any ordering
       }

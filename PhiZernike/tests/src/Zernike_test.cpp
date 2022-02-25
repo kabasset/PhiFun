@@ -20,7 +20,7 @@ BOOST_AUTO_TEST_CASE(save_zernikes_test) {
   Euclid::Fits::Validation::Chronometer<std::chrono::milliseconds> chrono;
   constexpr long side = 1024;
   chrono.start();
-  const auto zxy = basis(side);
+  const auto zxy = basis(side / 2, side);
   chrono.stop();
   printf("Elapsed: %lims\n", chrono.last().count());
   Euclid::Fits::VecRaster<double, 3> xyz({side, side, zxy.shape()[0]});

@@ -86,7 +86,7 @@ public:
 
     logger.info("Generating Zernike polynomials...");
     chrono.start();
-    const auto& zernike = Zernike::basis(maskSide, alphaCount);
+    const auto& zernike = Zernike::basis(pupilDiameter / 2, maskSide, alphaCount);
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
     // Euclid::Fits::VecRaster<double, 3> zernikeDisp({maskSide, maskSide, alphaCount});
