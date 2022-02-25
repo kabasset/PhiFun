@@ -51,12 +51,12 @@ public:
     Euclid::Fits::ProgramOptions options(
         "Compute a monochromatic PSF from a pupil mask and randmom Zernike coefficients.");
 
-    options.named("alphas", value<long>()->default_value(40), "Number of Zernike indices");
-    options.named("mask", value<long>()->default_value(1024), "Pupil mask diameter");
-    options.named("pupil", value<long>()->default_value(512), "Pupil diameter");
-    options.named("psf", value<long>()->default_value(300), "Output PSF diameter");
+    options.named("alphas", "Number of Zernike indices", 40);
+    options.named("mask", "Pupil mask diameter", 1024);
+    options.named("pupil", "Pupil diameter", 512);
+    options.named("psf", "Output PSF diameter", 300);
 
-    options.named("output", value<std::string>()->default_value("/tmp/psf.fits"), "Output file");
+    options.named("output", "Output file", std::string("/tmp/psf.fits"));
 
     return options.asPair();
   }

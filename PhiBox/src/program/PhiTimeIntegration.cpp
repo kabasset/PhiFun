@@ -102,10 +102,10 @@ class PhiTimeIntegration : public Elements::Program {
 public:
   std::pair<OptionsDescription, PositionalOptionsDescription> defineProgramArguments() override {
     Euclid::Fits::ProgramOptions options("Wrap and integrate a set of random monochromatic TFs into a broadband TF.");
-    options.named("input", value<long>()->default_value(1024), "Monochromatic TF diameter");
-    options.named("output", value<long>()->default_value(512), "Broadband TF diameter");
-    options.named("lambdas", value<long>()->default_value(40), "Number of wavelengths");
-    options.named("steps", value<long>()->default_value(200), "Number of integration steps");
+    options.named("input", "Monochromatic TF diameter", 1024);
+    options.named("output", "Broadband TF diameter", 512);
+    options.named("lambdas", "Number of wavelengths", 40);
+    options.named("steps", "Number of integration steps", 200);
     options.flag("combine", "Combine the interpolation and integration steps");
     return options.asPair();
   }
