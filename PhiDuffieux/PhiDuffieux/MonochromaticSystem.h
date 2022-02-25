@@ -28,7 +28,7 @@ public:
     return m_stf;
   }
 
-  const Fourier::ComplexDftBuffer& wrapSystemTf() {
+  const Fourier::ComplexDftBuffer& warpSystemTf() {
     const auto width = m_tfToPsf.in().shape()[0];
     const auto height = m_tfToPsf.in().shape()[1];
     const double xFactor = double(m_stf.shape()[0] - 1) / (width - 1);

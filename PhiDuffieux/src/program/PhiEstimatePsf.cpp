@@ -164,12 +164,12 @@ public:
     logger.info() << "  " << chrono.last().count() << "ms";
     f.appendImage("System TF intensity", {}, norm2(stf));
 
-    logger.info("Wrapping system transfer function (wrapping)...");
+    logger.info("Wrapping system transfer function (warping)...");
     chrono.start();
-    const auto& wrappedTf = system.wrapSystemTf();
+    const auto& warpedTf = system.warpSystemTf();
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
-    f.appendImage("Wrapped system TF intensity", {}, norm2(wrappedTf));
+    f.appendImage("Wrapped system TF intensity", {}, norm2(warpedTf));
 
     logger.info("Computing system PSF (inverse real DFT)...");
     chrono.start();
