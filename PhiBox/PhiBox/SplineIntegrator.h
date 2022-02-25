@@ -12,6 +12,20 @@ namespace Phi {
 namespace Spline {
 
 /**
+ * @brief Generate evenly spaced samples over a closed interval.
+ */
+std::vector<double> linspace(double min, double max, std::size_t count) {
+  std::vector<double> xs(count);
+  const double step = (max - min) / (count - 1);
+  double value = min;
+  for (auto& x : xs) {
+    x = value;
+    value += step;
+  }
+  return xs;
+}
+
+/**
  * @brief Spline interpolation and integration, inspired by a proposal by Lance Miller.
  * @details
  * Although this class is generic, it was initially developped for TF integration.
@@ -32,7 +46,7 @@ public:
   /**
    * @brief Constructor.
    * @param u The input knots x's (strictly increasing)
-   * @param x The output x's (strictly increasing and in u's interval)
+   * @param x The integration x's (strictly increasing and in u's interval)
    * @details
    * Precompute spline coefficients.
    */

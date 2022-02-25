@@ -51,12 +51,12 @@ public:
     Euclid::Fits::ProgramOptions options(
         "Compute a monochromatic PSF from a pupil mask and randmom Zernike coefficients.");
 
-    options.named("alphas", "Number of Zernike indices", 40);
-    options.named("mask", "Pupil mask diameter", 1024);
-    options.named("pupil", "Pupil diameter", 512);
-    options.named("psf", "Output PSF diameter", 300);
+    options.named<long>("alphas", "Number of Zernike indices", 40);
+    options.named<long>("mask", "Pupil mask diameter", 1024);
+    options.named<long>("pupil", "Pupil diameter", 512);
+    options.named<long>("psf", "Output PSF diameter", 300);
 
-    options.named("output", "Output file", std::string("/tmp/psf.fits"));
+    options.named<std::string>("output", "Output file", "/tmp/psf.fits");
 
     return options.asPair();
   }
@@ -111,7 +111,7 @@ public:
 
     logger.info("Planning optical DFT and allocating memory...");
     chrono.start();
-    Duffieux::MonochromaticOptics optics(.500, maskSide, alphas);
+    Duffieux::MonochromaticOptics optics(.500, pupil, zernike, alphas);
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
 
@@ -123,20 +123,20 @@ public:
 
     logger.info("Computing pupil amplitude (complex exp)...");
     chrono.start();
-    const auto& pupilAmplitude = optics.evalPupilAmplitude(pupil, zernike);
+    const auto& pupilAmplitude = optics.pupilAmplitude();
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
     f.appendImage("Pupil intensity", {}, Fourier::norm2(pupilAmplitude));
 
     logger.info("Computing PSF amplitude (complex DFT)...");
     chrono.start();
-    const auto& psfAmplitude = optics.evalPsfAmplitude();
+    const auto& psfAmplitude = optics.psfAmplitude();
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
 
     logger.info("Computing PSF intensity (norm)...");
     chrono.start();
-    const auto& intensity = optics.evalPsfIntensity();
+    const auto& intensity = optics.psfIntensity();
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
     f.appendImage("Optical PSF intensity", {}, intensity);

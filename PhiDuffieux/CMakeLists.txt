@@ -45,6 +45,9 @@ elements_add_library(PhiDuffieux src/lib/*.cpp
 elements_add_executable(PhiEstimatePsf src/program/PhiEstimatePsf.cpp
                      INCLUDE_DIRS PhiDuffieux
                      LINK_LIBRARIES PhiDuffieux)
+elements_add_executable(PhiGeneratePsf src/program/PhiGeneratePsf.cpp
+                     INCLUDE_DIRS PhiDuffieux
+                     LINK_LIBRARIES PhiDuffieux)
 
 #===============================================================================
 # Declare the Boost tests here
