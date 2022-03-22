@@ -115,7 +115,7 @@ public:
 
       logger.info("  Computing PSF intensity (complex exp, complex DFT, norm)...");
       chrono.start();
-      const auto& intensity = optics.psfIntensity();
+      const auto& intensity = optics.get<Duffieux::PsfIntensity>();
       chrono.stop();
       logger.info() << "    " << chrono.last().count() << "ms";
       f.appendImage(lambdaStr + " optical PSF", {}, intensity);
@@ -134,7 +134,7 @@ public:
       const auto& warpedTf = system.warpSystemTf(scaling, 0, 0, scaling);
       chrono.stop();
       logger.info() << "    " << chrono.last().count() << "ms";
-      f.appendImage(lambdaStr + "warped system TF intensity", {}, norm2(warpedTf));
+      f.appendImage(lambdaStr + " warped system TF intensity", {}, norm2(warpedTf));
     }
 
     logger.info("Computing system PSF (inverse real DFT)...");

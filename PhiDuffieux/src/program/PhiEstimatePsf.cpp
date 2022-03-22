@@ -123,20 +123,20 @@ public:
 
     logger.info("Computing pupil amplitude (complex exp)...");
     chrono.start();
-    const auto& pupilAmplitude = optics.pupilAmplitude();
+    const auto& pupilAmplitude = optics.get<Duffieux::PupilAmplitude>();
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
-    f.appendImage("Pupil intensity", {}, Fourier::norm2(pupilAmplitude));
+    f.appendImage("Pupil intensity", {}, norm2(pupilAmplitude));
 
     logger.info("Computing PSF amplitude (complex DFT)...");
     chrono.start();
-    const auto& psfAmplitude = optics.psfAmplitude();
+    const auto& psfAmplitude = optics.get<Duffieux::PsfAmplitude>();
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
 
     logger.info("Computing PSF intensity (norm)...");
     chrono.start();
-    const auto& intensity = optics.psfIntensity();
+    const auto& intensity = optics.get<Duffieux::PsfIntensity>();
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
     f.appendImage("Optical PSF intensity", {}, intensity);

@@ -27,10 +27,10 @@ struct HasPrerequisite {
  * This class relies on the CRTP.
  * Child classes should provide a specialization of the following methods for each step `S`:
  * - `void doEvaluate<S>()`, which evaluates `S` assuming prerequisites were already computed;
- * - `S::Value doGet<S>()`, which returns the computed value of `S`.
+ * - `S::Return doGet<S>()`, which returns the computed value of `S`.
  * 
  * A step `S` is a class which contains the following types:
- * - `Value` is the value type of the output of step `S`;
+ * - `Return` is the value type of the output of step `S`;
  * - `Prerequisite` is the step which must be run prior to `S`, or `void` if there is no prerequisite.
  */
 template <typename Algo>
@@ -41,7 +41,7 @@ public:
    * @brief Lazy evaluation of step `S` which triggers prerequisite evaluation if needed.
    */
   template <typename S>
-  std::enable_if_t<HasPrerequisite<S>::value, typename S::Value> get() {
+  std::enable_if_t<HasPrerequisite<S>::value, typename S::Return> get() {
     get<typename S::Prerequisite>();
     return evaluateGet<S>();
   }
@@ -50,8 +50,15 @@ public:
    * @brief Evaluation of step `S` which has no prerequisite.
    */
   template <typename S>
-  std::enable_if_t<not HasPrerequisite<S>::value, typename S::Value> get() {
+  std::enable_if_t<not HasPrerequisite<S>::value, typename S::Return> get() {
     return evaluateGet<S>();
+  }
+
+  /**
+   * @brief Reset to initial step.
+   */
+  void reset() {
+    m_done.clear();
   }
 
 private:
@@ -72,8 +79,8 @@ private:
     /**
      * @brief Call `algo.doGet<S>()`.
      */
-    static typename S::Value get(Algo& algo) {
-      typename S::Value (Algo::*fn)() const = &Accessor::template doGet<S>;
+    static typename S::Return get(Algo& algo) {
+      typename S::Return (Algo::*fn)() const = &Accessor::template doGet<S>;
       return (algo.*fn)();
     }
   };
@@ -82,7 +89,7 @@ private:
    * @brief Run step `S` if not done.
    */
   template <typename S>
-  typename S::Value evaluateGet() {
+  typename S::Return evaluateGet() {
     const auto index = std::type_index(typeid(S));
     if (m_done.count(index) == 0) { // FIXME not thread-safe
       Accessor<S>::evaluate(derived());

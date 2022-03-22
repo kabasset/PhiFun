@@ -10,23 +10,23 @@
 
 struct StepA {
   using Prerequisite = void;
-  using Value = int;
-  Value value = 0;
+  using Return = int;
+  Return value = 0;
 };
 
 struct StepB {
   using Prerequisite = StepA;
-  using Value = char;
-  Value value = 'z';
+  using Return = char;
+  Return value = 'z';
 };
 
 class ABAlgo : public Phi::Framework::StepperAlgo<ABAlgo> {
 public:
-  StepA::Value getA() const {
+  StepA::Return getA() const {
     return m_a.value;
   }
 
-  StepB::Value getB() const {
+  StepB::Return getB() const {
     return m_b.value;
   }
 
@@ -35,7 +35,7 @@ protected:
   void doEvaluate();
 
   template <typename S>
-  typename S::Value doGet() const;
+  typename S::Return doGet() const;
 
 private:
   StepA m_a;
@@ -53,12 +53,12 @@ void ABAlgo::doEvaluate<StepB>() {
 }
 
 template <>
-StepA::Value ABAlgo::doGet<StepA>() const {
+StepA::Return ABAlgo::doGet<StepA>() const {
   return m_a.value;
 }
 
 template <>
-StepB::Value ABAlgo::doGet<StepB>() const {
+StepB::Return ABAlgo::doGet<StepB>() const {
   return m_b.value;
 }
 
