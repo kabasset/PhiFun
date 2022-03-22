@@ -41,6 +41,17 @@ class MonochromaticOptics : public Framework::StepperAlgo<MonochromaticOptics> {
 
 public:
   /**
+   * @brief Optical parameters.
+   */
+  struct Params {
+    double wavenumber;
+    Fourier::Position shape;
+    const double* maskData;
+    const double* zernikesData;
+    std::vector<double> alphas;
+  };
+
+  /**
    * @brief Constructor.
    * @param lambda The wavelength
    * @param diameter The pupil mask
@@ -49,15 +60,14 @@ public:
    */
   template <typename TMask, typename TZernikes>
   MonochromaticOptics(double lambda, const TMask& mask, const TZernikes& basis, std::vector<double> alphas) :
-      m_wavenumber(2 * m_pi / lambda), m_maskData(mask.data()), m_zernikesData(basis.data()),
-      m_alphas(std::move(alphas)), m_pupilToPsf(mask.shape()), m_pupilAmplitude(m_pupilToPsf.in()),
-      m_psfAmplitude(m_pupilToPsf.out()), m_psfIntensity(mask.shape()) {}
+      m_params {2 * m_pi / lambda, mask.shape(), mask.data(), basis.data(), std::move(alphas)},
+      m_pupilToPsf(m_params.shape), m_psfIntensity(m_params.shape) {}
 
   /**
    * @brief Update the wavelength.
    */
   void updateLambda(double lambda) {
-    m_wavenumber = 2 * m_pi / lambda;
+    m_params.wavenumber = 2 * m_pi / lambda;
     reset();
   }
 
@@ -83,19 +93,14 @@ private:
   std::complex<double> evalPhase(double mask, const double* zernikes) {
     double minusPhi = 0;
     auto zIt = zernikes;
-    for (auto aIt = m_alphas.begin(); aIt != m_alphas.end(); ++aIt, ++zIt) {
+    for (auto aIt = m_params.alphas.begin(); aIt != m_params.alphas.end(); ++aIt, ++zIt) {
       minusPhi -= (*aIt) * (*zIt);
     }
-    return mask * std::exp(std::complex<double>(0, m_wavenumber * minusPhi));
+    return mask * std::exp(std::complex<double>(0, m_params.wavenumber * minusPhi));
   }
 
-  double m_wavenumber;
-  const double* m_maskData;
-  const double* m_zernikesData;
-  std::vector<double> m_alphas;
+  Params m_params;
   Fourier::ComplexDft m_pupilToPsf;
-  Fourier::ComplexDftBuffer& m_pupilAmplitude;
-  Fourier::ComplexDftBuffer& m_psfAmplitude;
   Fourier::RealDftBuffer m_psfIntensity;
 };
 

@@ -9,12 +9,12 @@ namespace Duffieux {
 
 template <>
 const Fourier::ComplexDftBuffer& MonochromaticOptics::doGet<PupilAmplitude>() const {
-  return m_pupilAmplitude;
+  return m_pupilToPsf.in();
 }
 
 template <>
 const Fourier::ComplexDftBuffer& MonochromaticOptics::doGet<PsfAmplitude>() const {
-  return m_psfAmplitude;
+  return m_pupilToPsf.out();
 }
 
 template <>
@@ -24,10 +24,11 @@ const Fourier::RealDftBuffer& MonochromaticOptics::doGet<PsfIntensity>() const {
 
 template <>
 void MonochromaticOptics::doEvaluate<PupilAmplitude>() {
-  const auto size = m_alphas.size();
-  const double* maskIt = m_maskData;
-  const double* zernikesIt = m_zernikesData;
-  for (auto it = m_pupilAmplitude.begin(); it != m_pupilAmplitude.end(); ++it, ++maskIt, zernikesIt += size) {
+  const auto size = m_params.alphas.size();
+  const double* maskIt = m_params.maskData;
+  const double* zernikesIt = m_params.zernikesData;
+  auto& amp = m_pupilToPsf.in();
+  for (auto it = amp.begin(); it != amp.end(); ++it, ++maskIt, zernikesIt += size) {
     if (*maskIt != 0) {
       *it = evalPhase(*maskIt, zernikesIt);
     } else {
@@ -43,7 +44,7 @@ void MonochromaticOptics::doEvaluate<PsfAmplitude>() {
 
 template <>
 void MonochromaticOptics::doEvaluate<PsfIntensity>() {
-  norm2(m_psfAmplitude, m_psfIntensity);
+  norm2(m_pupilToPsf.out(), m_psfIntensity);
 }
 
 } // namespace Duffieux
