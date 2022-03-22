@@ -14,6 +14,7 @@ elements_subdir(PhiBox)
 #         elements_depends_on_subdirs(ElementsKernel)
 #===============================================================================
 elements_depends_on_subdirs(EleFits EleFitsValidation)
+elements_depends_on_subdirs(ElementsKernel)
 
 #===============================================================================
 # Add the find_package macro (a pure CMake command) here to locate the
@@ -31,8 +32,8 @@ elements_depends_on_subdirs(EleFits EleFitsValidation)
 #                     PUBLIC_HEADERS ElementsExamples)
 #===============================================================================
 elements_add_library(PhiBox src/lib/*.cpp
-                     INCLUDE_DIRS EleFits
-                     LINK_LIBRARIES EleFits
+                     INCLUDE_DIRS EleFits ElementsKernel
+                     LINK_LIBRARIES EleFits ElementsKernel
                      PUBLIC_HEADERS PhiBox)
 
 #===============================================================================
@@ -60,6 +61,10 @@ elements_add_unit_test(ImageProcessing tests/src/ImageProcessing_test.cpp
                      TYPE Boost)
 elements_add_unit_test(SplineIntegrator tests/src/SplineIntegrator_test.cpp 
                      EXECUTABLE PhiBox_SplineIntegrator_test
+                     LINK_LIBRARIES PhiBox
+                     TYPE Boost)
+elements_add_unit_test(StepperAlgo tests/src/StepperAlgo_test.cpp 
+                     EXECUTABLE PhiBox_StepperAlgo_test
                      LINK_LIBRARIES PhiBox
                      TYPE Boost)
 
