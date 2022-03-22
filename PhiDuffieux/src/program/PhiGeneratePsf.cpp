@@ -127,14 +127,15 @@ public:
       chrono.stop();
       logger.info() << "    " << chrono.last().count() << "ms";
       f.appendImage(lambdaStr + " system TF", {}, norm2(stf));
-    }
 
-    logger.info("Wrapping system transfer function (bilinear interpolation)...");
-    chrono.start();
-    const auto& warpedTf = system.warpSystemTf();
-    chrono.stop();
-    logger.info() << "  " << chrono.last().count() << "ms";
-    f.appendImage("Wrapped system TF intensity", {}, norm2(warpedTf));
+      logger.info("  Wrapping system transfer function (bilinear interpolation)...");
+      chrono.start();
+      const auto scaling = lambda / 1000.; // Dummy value
+      const auto& warpedTf = system.warpSystemTf(scaling, 0, 0, scaling);
+      chrono.stop();
+      logger.info() << "    " << chrono.last().count() << "ms";
+      f.appendImage(lambdaStr + "warped system TF intensity", {}, norm2(warpedTf));
+    }
 
     logger.info("Computing system PSF (inverse real DFT)...");
     chrono.start();

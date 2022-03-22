@@ -166,7 +166,7 @@ public:
 
     logger.info("Wrapping system transfer function (warping)...");
     chrono.start();
-    const auto& warpedTf = system.warpSystemTf();
+    const auto& warpedTf = system.warpSystemTf(1, 1, 1, 1);
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
     f.appendImage("Wrapped system TF intensity", {}, norm2(warpedTf));
