@@ -13,23 +13,37 @@
 namespace Phi {
 namespace Duffieux {
 
+/**
+ * @brief Complex pupil amplitude computed from the phase and pupil mask.
+ * @details
+ * The phase is obtained from a Zernike basis and Zernike coefficients.
+ */
 struct PupilAmplitude {
   using Prerequisite = void;
   using Return = const Fourier::ComplexDftBuffer&;
 };
 
+/**
+ * @brief Complex PSF amplitude computed as the inverse DFT of the complex pupil amplitude.
+ */
 struct PsfAmplitude {
   using Prerequisite = PupilAmplitude;
   using Return = const Fourier::ComplexDftBuffer&;
 };
 
+/**
+ * @brief PSF intensity computed as the norm squared of the PSF amplitude.
+ */
 struct PsfIntensity {
   using Prerequisite = PsfAmplitude;
   using Return = const Fourier::RealDftBuffer&;
 };
 
 /**
- * @brief Monochromatic data buffers and transforms with lazy evaluation.
+ * @brief Monochromatic optical model.
+ * @details
+ * Contains parameters and data buffers and provides step-by-step transforms.
+ * @see StepperAlgo
  */
 class MonochromaticOptics : public Framework::StepperAlgo<MonochromaticOptics> {
   friend class MonochromaticSystem;
@@ -44,29 +58,38 @@ public:
    * @brief Optical parameters.
    */
   struct Params {
-    double wavenumber;
-    Fourier::Position shape;
-    const double* maskData;
-    const double* zernikesData;
-    std::vector<double> alphas;
+
+    /**
+     * @brief Constructor.
+     * @param lambda The wavelength
+     * @param diameter The pupil mask
+     * @param basis The Zernike basis
+     * @param alphas The Zernike coefficients
+     */
+    template <typename TMask, typename TZernikes>
+    Params(double lambda, const TMask& mask, const TZernikes& basis, std::vector<double> coefficients) :
+        wavelength(lambda), wavenumber(2 * m_pi / lambda), shape(mask.shape()), maskData(mask.data()),
+        zernikesData(basis.data()), alphas(std::move(coefficients)) {}
+
+    double wavelength; ///< The current wavelength
+    double wavenumber; ///< The current wave number
+    Fourier::Position shape; ///< The logical data shape
+    const double* maskData; ///< The pupil mask data
+    const double* zernikesData; ///< The Zernike basis data
+    std::vector<double> alphas; ///< The Zernike coefficients
   };
 
   /**
    * @brief Constructor.
-   * @param lambda The wavelength
-   * @param diameter The pupil mask
-   * @param basis The Zernike basis
-   * @param alphas The Zernike coefficients
    */
-  template <typename TMask, typename TZernikes>
-  MonochromaticOptics(double lambda, const TMask& mask, const TZernikes& basis, std::vector<double> alphas) :
-      m_params {2 * m_pi / lambda, mask.shape(), mask.data(), basis.data(), std::move(alphas)},
-      m_pupilToPsf(m_params.shape), m_psfIntensity(m_params.shape) {}
+  explicit MonochromaticOptics(Params params) :
+      m_params(std::move(params)), m_pupilToPsf(m_params.shape), m_psfIntensity(m_params.shape) {}
 
   /**
    * @brief Update the wavelength.
    */
   void updateLambda(double lambda) {
+    m_params.wavelength = lambda;
     m_params.wavenumber = 2 * m_pi / lambda;
     reset();
   }
@@ -99,9 +122,9 @@ private:
     return mask * std::exp(std::complex<double>(0, m_params.wavenumber * minusPhi));
   }
 
-  Params m_params;
-  Fourier::ComplexDft m_pupilToPsf;
-  Fourier::RealDftBuffer m_psfIntensity;
+  Params m_params; ///< The optical parameters
+  Fourier::ComplexDft m_pupilToPsf; ///< The pupil amplitude to PSF amplitude DFT
+  Fourier::RealDftBuffer m_psfIntensity; ///< The PSF intensity
 };
 
 } // namespace Duffieux

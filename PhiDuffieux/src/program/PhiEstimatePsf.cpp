@@ -111,16 +111,16 @@ public:
 
     logger.info("Planning optical DFT and allocating memory...");
     chrono.start();
-    Duffieux::MonochromaticOptics optics(.500, pupil, zernike, alphas);
+    Duffieux::MonochromaticOptics optics({.500, pupil, zernike, alphas});
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
-
+    /*
     logger.info("Planning system DFT and allocating memory...");
     chrono.start();
     Duffieux::MonochromaticSystem system(optics, psfSide);
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
-
+*/
     logger.info("Computing pupil amplitude (complex exp)...");
     chrono.start();
     const auto& pupilAmplitude = optics.get<Duffieux::PupilAmplitude>();
@@ -140,7 +140,7 @@ public:
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
     f.appendImage("Optical PSF intensity", {}, intensity);
-
+    /*
     logger.info("Computing optical transfer function (real DFT)...");
     chrono.start();
     const auto& opticalTf = system.evalOpticalTf();
@@ -177,7 +177,7 @@ public:
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
     f.appendImage("System PSF", {}, psf);
-
+*/
     logger.info("Done.");
     return ExitCode::OK;
   }

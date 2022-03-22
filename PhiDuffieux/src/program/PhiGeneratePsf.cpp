@@ -102,8 +102,10 @@ public:
 
     logger.info("Planning monochromatic DFTs and allocating memory...");
     chrono.start();
-    Duffieux::MonochromaticOptics optics(.500, pupil, zernike, alphas);
-    Duffieux::MonochromaticSystem system(optics, psfSide);
+    Duffieux::MonochromaticSystem system(
+        {.500, pupil, zernike, alphas},
+        {{psfSide, psfSide}, nonOpticalTf, {.0001, 0, 0, .0001}});
+    auto& optics = system.optics();
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
 
@@ -122,16 +124,14 @@ public:
 
       logger.info("  Computing optical transfer function (real DFT, multiplication)...");
       chrono.start();
-      system.evalOpticalTf();
-      const auto& stf = system.evalSystemTf(nonOpticalTf);
+      const auto& stf = system.get<Duffieux::SystemTf>();
       chrono.stop();
       logger.info() << "    " << chrono.last().count() << "ms";
       f.appendImage(lambdaStr + " system TF", {}, norm2(stf));
 
       logger.info("  Wrapping system transfer function (bilinear interpolation)...");
       chrono.start();
-      const auto scaling = lambda / 1000.; // Dummy value
-      const auto& warpedTf = system.warpSystemTf(scaling, 0, 0, scaling);
+      const auto& warpedTf = system.get<Duffieux::WarpedSystemTf>();
       chrono.stop();
       logger.info() << "    " << chrono.last().count() << "ms";
       f.appendImage(lambdaStr + " warped system TF intensity", {}, norm2(warpedTf));
@@ -139,7 +139,7 @@ public:
 
     logger.info("Computing system PSF (inverse real DFT)...");
     chrono.start();
-    const auto& psf = system.evalSystemPsf();
+    const auto& psf = system.get<Duffieux::WarpedSystemPsf>();
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
     f.appendImage("System PSF", {}, psf);

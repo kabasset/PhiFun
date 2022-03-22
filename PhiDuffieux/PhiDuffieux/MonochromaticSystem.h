@@ -11,65 +11,68 @@
 namespace Phi {
 namespace Duffieux {
 
-class MonochromaticSystem {
+struct SystemTf {
+  using Prerequisite = void;
+  using Return = const Fourier::ComplexDftBuffer&;
+};
+
+struct WarpedSystemTf {
+  using Prerequisite = SystemTf;
+  using Return = const Fourier::ComplexDftBuffer&;
+};
+
+struct WarpedSystemPsf {
+  using Prerequisite = WarpedSystemTf;
+  using Return = const Fourier::RealDftBuffer&;
+};
+
+/**
+ * @brief Monochromatic system model.
+ */
+class MonochromaticSystem : public Framework::StepperAlgo<MonochromaticSystem> {
 
 public:
-  MonochromaticSystem(MonochromaticOptics& optics, long side) :
-      m_optics(optics), m_psf(m_optics.m_psfIntensity), m_psfToTf(m_psf.shape(), m_psf.data()), m_tfToPsf({side, side}),
-      m_stf(m_psfToTf.out()) {}
-
-  const Fourier::ComplexDftBuffer& evalOpticalTf() {
-    m_psfToTf.transform();
-    return m_stf;
-  }
-
-  const Fourier::ComplexDftBuffer& evalSystemTf(const Fourier::ComplexDftBuffer& nonOpticalTf) {
-    m_stf *= nonOpticalTf;
-    return m_stf;
-  }
+  /**
+   * @brief Non optical parameters.
+   */
+  struct Params {
+    Fourier::Position shape; ///< The broadband logical data shape
+    const Fourier::ComplexDftBuffer& nonOpticalTf; ///< The non optical transfer function
+    double distortion[4]; ///< The distortion coefficients ordered as: `ux, ux, vx, vy`
+  };
 
   /**
-   * @brief Warp the system transfer function.
-   * @details
-   * The distortion model is linear as follows:
-   * - `u = ux * x + uy * y`,
-   * - `v = vx * x + vy * y`;
-   * 
-   * where the coordinates are normalized and coefficients depend linearly on the wavelength.
+   * @brief Constructor.
    */
-  const Fourier::ComplexDftBuffer& warpSystemTf(double ux, double uy, double vx, double vy) {
-    const auto width = m_tfToPsf.in().shape()[0];
-    const auto height = m_tfToPsf.in().shape()[1];
-    const double xFactor = double(m_stf.shape()[0] - 1) / (width - 1);
-    const double yFactor = double(m_stf.shape()[1] - 1) / (height - 1);
-    const double uxFactor = ux * xFactor;
-    const double uyFactor = uy * yFactor;
-    const double vxFactor = vx * xFactor;
-    const double vyFactor = vy * yFactor;
-    auto* it = m_tfToPsf.in().begin();
-    for (long y = 0; y < height; ++y) {
-      const double uyValue = uyFactor * y;
-      const double vyValue = vyFactor * y;
-      for (long x = 0; x < width; ++x, ++it) {
-        const double u = uxFactor * x + uyValue;
-        const double v = vxFactor * x + vyValue;
-        *it = Image2D::bilinear<std::complex<double>>(m_stf, u, v);
-      }
-    }
-    return m_tfToPsf.in();
+  MonochromaticSystem(MonochromaticOptics::Params opticalParams, Params nonOpticalParams) :
+      m_params(std::move(nonOpticalParams)), m_optics(std::move(opticalParams)),
+      m_psfToTf(m_optics.m_params.shape, m_optics.m_psfIntensity.data()), m_tfToPsf(m_params.shape) {}
+
+  /**
+   * @brief Get the optical model.
+   */
+  MonochromaticOptics& optics() {
+    return m_optics;
   }
 
-  const Fourier::RealDftBuffer& evalSystemPsf() {
-    m_tfToPsf.transform().normalize();
-    return m_tfToPsf.out();
-  }
+protected:
+  /**
+   * @brief Get the result of step `S`.
+   */
+  template <typename S>
+  typename S::Return doGet() const;
+
+  /**
+   * @brief Evaluate step `S`.
+   */
+  template <typename S>
+  void doEvaluate();
 
 private:
-  MonochromaticOptics& m_optics;
-  Fourier::RealDftBuffer& m_psf;
-  Fourier::RealDft m_psfToTf;
-  Fourier::RealDft::Inverse m_tfToPsf;
-  Fourier::ComplexDftBuffer& m_stf;
+  Params m_params; ///< The system parameters
+  MonochromaticOptics m_optics; ///< The optical model
+  Fourier::RealDft m_psfToTf; ///< The unwarped PSF to TF transform
+  Fourier::RealDft::Inverse m_tfToPsf; ///< The warped TF to PSF transform
 };
 
 } // namespace Duffieux
