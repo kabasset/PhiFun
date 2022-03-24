@@ -7,8 +7,6 @@
 
 #include "PhiDuffieux/MonochromaticSystem.h"
 
-#include <vector>
-
 namespace Phi {
 namespace Duffieux {
 
@@ -22,11 +20,10 @@ public:
   }
 
   MonochromaticOptics& optics(long index) {
-    return m_optics[index];
+    return m_systems[index].optics();
   }
 
 private:
-  std::vector<MonochromaticOptics> m_optics;
   std::vector<MonochromaticSystem> m_systems;
 };
 

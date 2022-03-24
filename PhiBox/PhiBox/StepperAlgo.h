@@ -72,16 +72,16 @@ private:
      * @brief Call `algo.doEvaluate<S>()`.
      */
     static void evaluate(Algo& algo) {
-      void (Algo::*fn)() = &Accessor::template doEvaluate<S>;
-      (algo.*fn)();
+      auto f = &Accessor::template doEvaluate<S>;
+      (algo.*f)();
     }
 
     /**
      * @brief Call `algo.doGet<S>()`.
      */
     static typename S::Return get(Algo& algo) {
-      typename S::Return (Algo::*fn)() const = &Accessor::template doGet<S>;
-      return (algo.*fn)();
+      auto f = &Accessor::template doGet<S>;
+      return (algo.*f)();
     }
   };
 

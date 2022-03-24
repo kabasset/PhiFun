@@ -99,7 +99,7 @@ protected:
    * @brief Get the result of step `S`.
    */
   template <typename S>
-  typename S::Return doGet() const;
+  typename S::Return doGet();
 
   /**
    * @brief Evaluate step `S`.
@@ -126,6 +126,46 @@ private:
   Fourier::ComplexDft m_pupilToPsf; ///< The pupil amplitude to PSF amplitude DFT
   Fourier::RealDftBuffer m_psfIntensity; ///< The PSF intensity
 };
+
+template <>
+inline const Fourier::ComplexDftBuffer& MonochromaticOptics::doGet<PupilAmplitude>() {
+  return m_pupilToPsf.in();
+}
+
+template <>
+inline const Fourier::ComplexDftBuffer& MonochromaticOptics::doGet<PsfAmplitude>() {
+  return m_pupilToPsf.out();
+}
+
+template <>
+inline const Fourier::RealDftBuffer& MonochromaticOptics::doGet<PsfIntensity>() {
+  return m_psfIntensity;
+}
+
+template <>
+inline void MonochromaticOptics::doEvaluate<PupilAmplitude>() {
+  const auto size = m_params.alphas.size();
+  const double* maskIt = m_params.maskData;
+  const double* zernikesIt = m_params.zernikesData;
+  auto& amp = m_pupilToPsf.in();
+  for (auto it = amp.begin(); it != amp.end(); ++it, ++maskIt, zernikesIt += size) {
+    if (*maskIt != 0) {
+      *it = evalPhase(*maskIt, zernikesIt);
+    } else {
+      *it = 0;
+    }
+  }
+}
+
+template <>
+inline void MonochromaticOptics::doEvaluate<PsfAmplitude>() {
+  m_pupilToPsf.transform().normalize();
+}
+
+template <>
+inline void MonochromaticOptics::doEvaluate<PsfIntensity>() {
+  norm2(m_pupilToPsf.out(), m_psfIntensity);
+}
 
 } // namespace Duffieux
 } // namespace Phi

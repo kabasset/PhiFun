@@ -35,7 +35,7 @@ protected:
   void doEvaluate();
 
   template <typename S>
-  typename S::Return doGet() const;
+  typename S::Return doGet();
 
 private:
   StepA m_a;
@@ -53,12 +53,12 @@ void ABAlgo::doEvaluate<StepB>() {
 }
 
 template <>
-StepA::Return ABAlgo::doGet<StepA>() const {
+StepA::Return ABAlgo::doGet<StepA>() {
   return m_a.value;
 }
 
 template <>
-StepB::Return ABAlgo::doGet<StepB>() const {
+StepB::Return ABAlgo::doGet<StepB>() {
   return m_b.value;
 }
 
