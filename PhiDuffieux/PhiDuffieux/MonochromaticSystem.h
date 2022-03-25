@@ -51,8 +51,13 @@ public:
   /**
    * @brief Get the optical model.
    */
-  MonochromaticOptics& optics() {
+  const MonochromaticOptics& optics() {
     return m_optics;
+  }
+
+  void updateLambda(double lambda) {
+    m_optics.updateLambda(lambda);
+    reset();
   }
 
 protected:

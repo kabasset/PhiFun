@@ -105,19 +105,18 @@ public:
     Duffieux::MonochromaticSystem system(
         {.500, pupil, zernike, alphas},
         {{psfSide, psfSide}, nonOpticalTf, {.0001, 0, 0, .0001}});
-    auto& optics = system.optics();
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
 
     // Loop over lambdas to build the monochromatic system TFs
     for (double lambda : Spline::linspace(500., 900., lambdaCount)) {
-      optics.updateLambda(lambda);
+      system.updateLambda(lambda);
       const auto lambdaStr = std::to_string(int(lambda + .5)) + "nm";
       logger.info() << "Lambda = " << lambdaStr;
 
       logger.info("  Computing PSF intensity (complex exp, complex DFT, norm)...");
       chrono.start();
-      const auto& intensity = optics.get<Duffieux::PsfIntensity>();
+      const auto& intensity = system.get<Duffieux::PsfIntensity>();
       chrono.stop();
       logger.info() << "    " << chrono.last().count() << "ms";
       f.appendImage(lambdaStr + " optical PSF", {}, intensity);
