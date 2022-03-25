@@ -63,8 +63,8 @@ elements_add_unit_test(SplineIntegrator tests/src/SplineIntegrator_test.cpp
                      EXECUTABLE PhiBox_SplineIntegrator_test
                      LINK_LIBRARIES PhiBox
                      TYPE Boost)
-elements_add_unit_test(StepperAlgo tests/src/StepperAlgo_test.cpp 
-                     EXECUTABLE PhiBox_StepperAlgo_test
+elements_add_unit_test(StepperPipeline tests/src/StepperPipeline_test.cpp 
+                     EXECUTABLE PhiBox_StepperPipeline_test
                      LINK_LIBRARIES PhiBox
                      TYPE Boost)
 

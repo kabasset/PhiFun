@@ -29,7 +29,7 @@ struct WarpedSystemPsf {
 /**
  * @brief Monochromatic system model.
  */
-class MonochromaticSystem : public Framework::StepperAlgo<MonochromaticSystem> {
+class MonochromaticSystem : public Framework::StepperPipeline<MonochromaticSystem> {
 
 public:
   /**

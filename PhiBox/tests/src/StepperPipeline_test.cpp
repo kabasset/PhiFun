@@ -2,7 +2,7 @@
 // This file is part of PhiFun <github.com/kabasset/PhiFun>
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-#include "PhiBox/StepperAlgo.h"
+#include "PhiBox/StepperPipeline.h"
 
 #include <boost/test/unit_test.hpp>
 
@@ -32,7 +32,7 @@ struct Step2 {
   Return value = 0;
 };
 
-class Dag : public Phi::Framework::StepperAlgo<Dag> {
+class Dag : public Phi::Framework::StepperPipeline<Dag> {
 public:
   Step0::Return get0() const {
     return m_0.value;
@@ -109,7 +109,7 @@ Step2::Return Dag::doGet<Step2>() {
   return m_2.value;
 }
 
-BOOST_AUTO_TEST_SUITE(StepperAlgo_test)
+BOOST_AUTO_TEST_SUITE(StepperPipeline_test)
 
 //-----------------------------------------------------------------------------
 

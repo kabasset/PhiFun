@@ -2,8 +2,8 @@
 // This file is part of PhiFun <github.com/kabasset/PhiFun>
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-#ifndef _PHIBOX_STEPPERALGO_H
-#define _PHIBOX_STEPPERALGO_H
+#ifndef _PHIBOX_STEPPERPIPELINE_H
+#define _PHIBOX_STEPPERPIPELINE_H
 
 #include <set>
 #include <tuple>
@@ -58,7 +58,7 @@ constexpr int prerequisiteCardinality() {
  *   Multiple prerequisites are describled with tuples.
  */
 template <typename Derived>
-class StepperAlgo {
+class StepperPipeline {
 
 public:
   /**
@@ -155,4 +155,4 @@ private:
 } // namespace Framework
 } // namespace Phi
 
-#endif // _PHIBOX_STEPPERALGO_H
+#endif // _PHIBOX_STEPPERPIPELINE_H

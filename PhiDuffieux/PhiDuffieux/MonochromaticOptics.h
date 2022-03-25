@@ -5,7 +5,7 @@
 #ifndef _PHIDUFFIEUX_MONOCHROMATICOPTICS_H
 #define _PHIDUFFIEUX_MONOCHROMATICOPTICS_H
 
-#include "PhiBox/StepperAlgo.h"
+#include "PhiBox/StepperPipeline.h"
 #include "PhiFourier/Dft.h"
 
 #include <vector>
@@ -43,9 +43,9 @@ struct PsfIntensity {
  * @brief Monochromatic optical model.
  * @details
  * Contains parameters and data buffers and provides step-by-step transforms.
- * @see StepperAlgo
+ * @see StepperPipeline
  */
-class MonochromaticOptics : public Framework::StepperAlgo<MonochromaticOptics> {
+class MonochromaticOptics : public Framework::StepperPipeline<MonochromaticOptics> {
   friend class MonochromaticSystem;
 
   /**
