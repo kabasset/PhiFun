@@ -13,7 +13,7 @@ namespace Duffieux {
 class BroadbandSystem {
 
 public:
-  BroadbandSystem(std::vector<double> lambdas);
+  BroadbandSystem(std::vector<double> lambdas, MonochromaticOptics::Params optics, MonochromaticSystem system);
 
   MonochromaticSystem& system(long index) {
     return m_systems[index];
@@ -21,6 +21,11 @@ public:
 
   MonochromaticOptics& optics(long index) {
     return m_systems[index].optics();
+  }
+
+  template <typename S>
+  typename S::Return get(long index) {
+    return m_systems[index].template get<S>();
   }
 
 private:

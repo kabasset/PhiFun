@@ -8,26 +8,46 @@
 
 //-----------------------------------------------------------------------------
 
-struct StepA {
+struct Step0 {
   using Prerequisite = void;
+  using Return = char;
+  Return value = 0;
+};
+
+struct Step1a {
+  using Prerequisite = Step0;
+  using Return = short;
+  Return value = 0;
+};
+
+struct Step1b {
+  using Prerequisite = Step0;
   using Return = int;
   Return value = 0;
 };
 
-struct StepB {
-  using Prerequisite = StepA;
-  using Return = char;
-  Return value = 'z';
+struct Step2 {
+  using Prerequisite = std::tuple<Step1a, Step1b>;
+  using Return = long;
+  Return value = 0;
 };
 
-class ABAlgo : public Phi::Framework::StepperAlgo<ABAlgo> {
+class Dag : public Phi::Framework::StepperAlgo<Dag> {
 public:
-  StepA::Return getA() const {
-    return m_a.value;
+  Step0::Return get0() const {
+    return m_0.value;
   }
 
-  StepB::Return getB() const {
-    return m_b.value;
+  Step1a::Return get1a() const {
+    return m_1a.value;
+  }
+
+  Step1b::Return get1b() const {
+    return m_1b.value;
+  }
+
+  Step2::Return get2() const {
+    return m_2.value;
   }
 
 protected:
@@ -38,46 +58,101 @@ protected:
   typename S::Return doGet();
 
 private:
-  StepA m_a;
-  StepB m_b;
+  char m_value = 0;
+  Step0 m_0;
+  Step1a m_1a;
+  Step1b m_1b;
+  Step2 m_2;
 };
 
 template <>
-void ABAlgo::doEvaluate<StepA>() {
-  ++m_a.value;
+void Dag::doEvaluate<Step0>() {
+  ++m_value;
+  m_0.value = m_value;
 }
 
 template <>
-void ABAlgo::doEvaluate<StepB>() {
-  --m_b.value;
+void Dag::doEvaluate<Step1a>() {
+  ++m_value;
+  m_1a.value = m_value;
 }
 
 template <>
-StepA::Return ABAlgo::doGet<StepA>() {
-  return m_a.value;
+void Dag::doEvaluate<Step1b>() {
+  ++m_value;
+  m_1b.value = m_value;
 }
 
 template <>
-StepB::Return ABAlgo::doGet<StepB>() {
-  return m_b.value;
+void Dag::doEvaluate<Step2>() {
+  ++m_value;
+  m_2.value = m_value;
+}
+
+template <>
+Step0::Return Dag::doGet<Step0>() {
+  return m_0.value;
+}
+
+template <>
+Step1a::Return Dag::doGet<Step1a>() {
+  return m_1a.value;
+}
+
+template <>
+Step1b::Return Dag::doGet<Step1b>() {
+  return m_1b.value;
+}
+
+template <>
+Step2::Return Dag::doGet<Step2>() {
+  return m_2.value;
 }
 
 BOOST_AUTO_TEST_SUITE(StepperAlgo_test)
 
 //-----------------------------------------------------------------------------
 
-BOOST_AUTO_TEST_CASE(caching_test) {
-  ABAlgo algo;
-  BOOST_TEST(algo.getA() == 0);
-  BOOST_TEST(algo.getB() == 'z');
-  const auto b = algo.get<StepB>();
-  BOOST_TEST(algo.getA() == 1);
-  BOOST_TEST(algo.getB() == 'y');
-  BOOST_TEST(b == 'y');
-  const auto a = algo.get<StepA>();
-  BOOST_TEST(algo.getA() == 1);
-  BOOST_TEST(algo.getB() == 'y');
-  BOOST_TEST(a == 1);
+BOOST_AUTO_TEST_CASE(back_and_forth_test) {
+
+  // Init
+  Dag dag;
+  BOOST_TEST(dag.get0() == 0);
+  BOOST_TEST(dag.get1a() == 0);
+  BOOST_TEST(dag.get1b() == 0);
+  BOOST_TEST(dag.get2() == 0);
+  const auto a = dag.get<Step1a>();
+  BOOST_TEST(dag.get0() == 1);
+  BOOST_TEST(dag.get1a() == 2);
+  BOOST_TEST(dag.get1b() == 0);
+  BOOST_TEST(dag.get2() == 0);
+  BOOST_TEST(a == 2);
+
+  // Back
+  const auto o = dag.get<Step0>();
+  BOOST_TEST(dag.get0() == 1);
+  BOOST_TEST(dag.get1a() == 2);
+  BOOST_TEST(dag.get1b() == 0);
+  BOOST_TEST(dag.get2() == 0);
+  BOOST_TEST(o == 1);
+
+  // Forth
+  const auto z = dag.get<Step2>();
+  BOOST_TEST(dag.get0() == 1);
+  BOOST_TEST(dag.get1a() == 2);
+  BOOST_TEST(dag.get1b() == 3);
+  BOOST_TEST(dag.get2() == 4);
+  BOOST_TEST(z == 4);
+}
+
+BOOST_AUTO_TEST_CASE(all_in_one_test) {
+  Dag dag;
+  const auto z = dag.get<Step2>();
+  BOOST_TEST(dag.get0() == 1);
+  BOOST_TEST(dag.get1a() == 2);
+  BOOST_TEST(dag.get1b() == 3);
+  BOOST_TEST(dag.get2() == 4);
+  BOOST_TEST(z == 4);
 }
 
 //-----------------------------------------------------------------------------

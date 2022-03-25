@@ -6,54 +6,88 @@
 #define _PHIBOX_STEPPERALGO_H
 
 #include <set>
+#include <tuple>
 #include <typeindex>
+#include <utility>
 
 namespace Phi {
 namespace Framework {
 
 /**
- * @brief Boolean wrapper class which test whether a given step has a prerequisite.
+ * @brief Traits class which gives the cardinality (number of elemonts) of a type.
+ * @details
+ * Cardinality of:
+ * - `void` is 0;
+ * - a tuple is its size;
+ * - any other type is 1.
  */
-template <typename S>
-struct HasPrerequisite {
-  static constexpr bool value = not std::is_same<typename S::Prerequisite, void>::value;
+template <typename T>
+struct TypeCardinality {
+  static constexpr std::size_t value = 1;
 };
 
+template <>
+struct TypeCardinality<void> {
+  static constexpr std::size_t value = 0;
+};
+
+template <typename... Ts>
+struct TypeCardinality<std::tuple<Ts...>> {
+  static constexpr std::size_t value = sizeof...(Ts);
+};
+
+template <typename S>
+constexpr int prerequisiteCardinality() {
+  return TypeCardinality<typename S::Prerequisite>::value;
+}
+
 /**
- * @brief An algorithm which can be run step-by-step using lazy evaluation.
+ * @brief A pipeline or directed acyclic graph (DAG) which can be run step-by-step using lazy evaluation.
  * @details
- * Only one method is provided, `get<S>()`, which returns the value of step `S`.
+ * The only public method, `get<S>()`, returns the value of step `S`.
+ * If not already done, the prerequisites of `S` are first triggered.
  * 
  * This class relies on the CRTP.
  * Child classes should provide a specialization of the following methods for each step `S`:
- * - `void doEvaluate<S>()`, which evaluates `S` assuming prerequisites were already computed;
+ * - `void doEvaluate<S>()`, which evaluates `S` assuming upstream tasks were already computed;
  * - `S::Return doGet<S>()`, which returns the computed value of `S`.
  * 
- * A step `S` is a class which contains the following types:
- * - `Return` is the value type of the output of step `S`;
- * - `Prerequisite` is the step which must be run prior to `S`, or `void` if there is no prerequisite.
+ * A step `S` is a class which contains the following type definitions:
+ * - `Return` is the return value type of `get<S>`;
+ * - `Prerequisite` is (are) the step(s) which must be run prior to `S`, or `void` if there is no prerequisite;
+ *   Multiple prerequisites are describled with tuples.
  */
-template <typename Algo>
+template <typename Derived>
 class StepperAlgo {
 
 public:
   /**
-   * @brief Lazy evaluation of step `S` which triggers prerequisite evaluation if needed.
+   * @brief Evaluation of step `S` which has no prerequisite.
    */
   template <typename S>
-  std::enable_if_t<HasPrerequisite<S>::value, typename S::Return> get() {
+  std::enable_if_t<prerequisiteCardinality<S>() == 0, typename S::Return> get() {
+    return evaluateGet<S>();
+  }
+
+  /**
+   * @brief Lazy evaluation of step `S` which triggers a single prerequisite evaluation if needed.
+   */
+  template <typename S>
+  std::enable_if_t<prerequisiteCardinality<S>() == 1, typename S::Return> get() {
     get<typename S::Prerequisite>();
     return evaluateGet<S>();
   }
 
   /**
-   * @brief Evaluation of step `S` which has no prerequisite.
+   * @brief Lazy evaluation of step `S` which triggers multiple prerequisite evaluations if needed.
    */
   template <typename S>
-  std::enable_if_t<not HasPrerequisite<S>::value, typename S::Return> get() {
+  std::enable_if_t<prerequisiteCardinality<S>() >= 2, typename S::Return> get() {
+    getMultiple<typename S::Prerequisite>(std::make_index_sequence<prerequisiteCardinality<S>()> {});
     return evaluateGet<S>();
   }
 
+protected:
   /**
    * @brief Reset to initial step.
    */
@@ -62,16 +96,22 @@ public:
   }
 
 private:
+  template <typename STuple, std::size_t... Is>
+  void getMultiple(std::index_sequence<Is...>) {
+    using mockUnpack = int[];
+    (void)mockUnpack {0, (get<std::tuple_element_t<Is, STuple>>(), void(), 0)...};
+  }
+
   /**
-   * @brief Access to protected methods of `Algo`.
+   * @brief Access to protected methods of `Derived`.
    */
   template <typename S>
-  struct Accessor : Algo {
+  struct Accessor : Derived {
 
     /**
      * @brief Call `algo.doEvaluate<S>()`.
      */
-    static void evaluate(Algo& algo) {
+    static void evaluate(Derived& algo) {
       auto f = &Accessor::template doEvaluate<S>;
       (algo.*f)();
     }
@@ -79,7 +119,7 @@ private:
     /**
      * @brief Call `algo.doGet<S>()`.
      */
-    static typename S::Return get(Algo& algo) {
+    static typename S::Return get(Derived& algo) {
       auto f = &Accessor::template doGet<S>;
       return (algo.*f)();
     }
@@ -99,10 +139,10 @@ private:
   }
 
   /**
-   * @brief Cast as `Algo`.
+   * @brief Cast as `Derived`.
    */
-  inline Algo& derived() {
-    return static_cast<Algo&>(*this);
+  inline Derived& derived() {
+    return static_cast<Derived&>(*this);
   }
 
 private:
