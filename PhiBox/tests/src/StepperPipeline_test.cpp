@@ -121,12 +121,20 @@ BOOST_AUTO_TEST_CASE(back_and_forth_test) {
   BOOST_TEST(dag.get1a() == 0);
   BOOST_TEST(dag.get1b() == 0);
   BOOST_TEST(dag.get2() == 0);
+  BOOST_TEST(dag.milliseconds<Step0>() < 0);
+  BOOST_TEST(dag.milliseconds<Step1a>() < 0);
+  BOOST_TEST(dag.milliseconds<Step1b>() < 0);
+  BOOST_TEST(dag.milliseconds<Step2>() < 0);
   const auto a = dag.get<Step1a>();
   BOOST_TEST(dag.get0() == 1);
   BOOST_TEST(dag.get1a() == 2);
   BOOST_TEST(dag.get1b() == 0);
   BOOST_TEST(dag.get2() == 0);
   BOOST_TEST(a == 2);
+  BOOST_TEST(dag.milliseconds<Step0>() > 0);
+  BOOST_TEST(dag.milliseconds<Step1a>() > 0);
+  BOOST_TEST(dag.milliseconds<Step1b>() < 0);
+  BOOST_TEST(dag.milliseconds<Step2>() < 0);
 
   // Back
   const auto o = dag.get<Step0>();
@@ -135,6 +143,10 @@ BOOST_AUTO_TEST_CASE(back_and_forth_test) {
   BOOST_TEST(dag.get1b() == 0);
   BOOST_TEST(dag.get2() == 0);
   BOOST_TEST(o == 1);
+  BOOST_TEST(dag.milliseconds<Step0>() > 0);
+  BOOST_TEST(dag.milliseconds<Step1a>() > 0);
+  BOOST_TEST(dag.milliseconds<Step1b>() < 0);
+  BOOST_TEST(dag.milliseconds<Step2>() < 0);
 
   // Forth
   const auto z = dag.get<Step2>();
@@ -143,6 +155,10 @@ BOOST_AUTO_TEST_CASE(back_and_forth_test) {
   BOOST_TEST(dag.get1b() == 3);
   BOOST_TEST(dag.get2() == 4);
   BOOST_TEST(z == 4);
+  BOOST_TEST(dag.milliseconds<Step0>() > 0);
+  BOOST_TEST(dag.milliseconds<Step1a>() > 0);
+  BOOST_TEST(dag.milliseconds<Step1b>() > 0);
+  BOOST_TEST(dag.milliseconds<Step2>() > 0);
 }
 
 BOOST_AUTO_TEST_CASE(all_in_one_test) {
@@ -153,6 +169,10 @@ BOOST_AUTO_TEST_CASE(all_in_one_test) {
   BOOST_TEST(dag.get1b() == 3);
   BOOST_TEST(dag.get2() == 4);
   BOOST_TEST(z == 4);
+  BOOST_TEST(dag.milliseconds<Step0>() > 0);
+  BOOST_TEST(dag.milliseconds<Step1a>() > 0);
+  BOOST_TEST(dag.milliseconds<Step1b>() > 0);
+  BOOST_TEST(dag.milliseconds<Step2>() > 0);
 }
 
 //-----------------------------------------------------------------------------

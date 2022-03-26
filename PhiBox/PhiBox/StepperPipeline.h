@@ -5,6 +5,8 @@
 #ifndef _PHIBOX_STEPPERPIPELINE_H
 #define _PHIBOX_STEPPERPIPELINE_H
 
+#include <chrono>
+#include <map>
 #include <set>
 #include <tuple>
 #include <typeindex>
@@ -87,12 +89,33 @@ public:
     return evaluateGet<S>();
   }
 
+  /**
+   * @brief Check whether some step `S` has already been evaluated.
+   */
+  template <typename S>
+  bool evaluated() const {
+    return m_milliseconds.find(key<S>()) != m_milliseconds.end();
+  }
+
+  /**
+   * @brief Get the elapsed time of step `S`.
+   * @return The time in millisecond if the step was evaluated, or -1 otherwise.
+   */
+  template <typename S>
+  double milliseconds() const {
+    const auto it = m_milliseconds.find(key<S>());
+    if (it != m_milliseconds.end()) {
+      return it->second;
+    }
+    return -1;
+  }
+
 protected:
   /**
    * @brief Reset to initial step.
    */
   void reset() {
-    m_done.clear();
+    m_milliseconds.clear();
   }
 
 private:
@@ -100,6 +123,7 @@ private:
   void getMultiple(std::index_sequence<Is...>) {
     using mockUnpack = int[];
     (void)mockUnpack {0, (get<std::tuple_element_t<Is, STuple>>(), void(), 0)...};
+    // TODO could be done in threads!
   }
 
   /**
@@ -126,14 +150,15 @@ private:
   };
 
   /**
-   * @brief Run step `S` if not done.
+   * @brief Run step `S` if not done and return its output.
    */
   template <typename S>
   typename S::Return evaluateGet() {
-    const auto index = std::type_index(typeid(S));
-    if (m_done.count(index) == 0) { // FIXME not thread-safe
+    if (not evaluated<S>()) { // FIXME not thread-safe
+      const auto start = std::chrono::high_resolution_clock::now();
       Accessor<S>::evaluate(derived());
-      m_done.emplace(index);
+      const auto stop = std::chrono::high_resolution_clock::now();
+      m_milliseconds[key<S>()] = std::chrono::duration<double, std::milli>(stop - start).count();
     }
     return Accessor<S>::get(derived());
   }
@@ -146,10 +171,14 @@ private:
   }
 
 private:
+  template <typename S>
+  std::type_index key() const {
+    return std::type_index(typeid(S));
+  }
   /**
-   * @brief The set of performed steps.
+   * @brief The set of performed steps and durations.
    */
-  std::set<std::type_index> m_done;
+  std::map<std::type_index, double> m_milliseconds;
 };
 
 } // namespace Framework

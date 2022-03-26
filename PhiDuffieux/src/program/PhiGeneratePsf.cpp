@@ -111,37 +111,32 @@ public:
     // Loop over lambdas to build the monochromatic system TFs
     for (double lambda : Spline::linspace(500., 900., lambdaCount)) {
       system.updateLambda(lambda);
-      const auto lambdaStr = std::to_string(int(lambda + .5)) + "nm";
+      const auto lambdaStr = std::to_string(int(lambda + .5)) + " nm";
       logger.info() << "Lambda = " << lambdaStr;
 
       logger.info("  Computing PSF intensity (complex exp, complex DFT, norm)...");
-      chrono.start();
       const auto& intensity = system.get<Duffieux::PsfIntensity>();
-      chrono.stop();
-      logger.info() << "    " << chrono.last().count() << "ms";
+      logger.info() << "    Complex exp: " << system.milliseconds<Duffieux::PupilAmplitude>() << " ms";
+      logger.info() << "    Complex DFT: " << system.milliseconds<Duffieux::PsfAmplitude>() << " ms";
+      logger.info() << "    Norm squared: " << system.milliseconds<Duffieux::PsfIntensity>() << " ms";
       f.appendImage(lambdaStr + " optical PSF", {}, intensity);
 
-      logger.info("  Computing optical transfer function (real DFT, multiplication)...");
-      chrono.start();
+      logger.info("  Computing optical transfer function...");
       const auto& stf = system.get<Duffieux::SystemTf>();
-      chrono.stop();
-      logger.info() << "    " << chrono.last().count() << "ms";
+      logger.info() << "    Real DFT, complex multiplication: " << system.milliseconds<Duffieux::SystemTf>() << " ms";
       f.appendImage(lambdaStr + " system TF", {}, norm2(stf));
 
-      logger.info("  Wrapping system transfer function (bilinear interpolation)...");
-      chrono.start();
+      logger.info("  Wrapping system transfer function...");
       const auto& warpedTf = system.get<Duffieux::WarpedSystemTf>();
-      chrono.stop();
-      logger.info() << "    " << chrono.last().count() << "ms";
+      logger.info() << "    Bilinear interpolation: " << system.milliseconds<Duffieux::WarpedSystemTf>() << " ms";
       f.appendImage(lambdaStr + " warped system TF intensity", {}, norm2(warpedTf));
-    }
 
-    logger.info("Computing system PSF (inverse real DFT)...");
-    chrono.start();
-    const auto& psf = system.get<Duffieux::WarpedSystemPsf>();
-    chrono.stop();
-    logger.info() << "  " << chrono.last().count() << "ms";
-    f.appendImage("System PSF", {}, psf);
+      logger.info("  Computing system PSF...");
+      chrono.start();
+      const auto& psf = system.get<Duffieux::WarpedSystemPsf>();
+      logger.info() << "    Inverse real DFT: " << system.milliseconds<Duffieux::WarpedSystemPsf>() << " ms";
+      f.appendImage(lambdaStr + " system PSF", {}, psf);
+    }
 
     logger.info() << "See " + f.filename();
     return ExitCode::OK;
