@@ -7,7 +7,6 @@
 
 #include <chrono>
 #include <map>
-#include <set>
 #include <tuple>
 #include <typeindex>
 #include <utility>
@@ -16,7 +15,7 @@ namespace Phi {
 namespace Framework {
 
 /**
- * @brief Traits class which gives the cardinality (number of elemonts) of a type.
+ * @brief Traits class which gives the cardinality (number of elements) of a type.
  * @details
  * Cardinality of:
  * - `void` is 0;
@@ -38,6 +37,10 @@ struct TypeCardinality<std::tuple<Ts...>> {
   static constexpr std::size_t value = sizeof...(Ts);
 };
 
+/**
+ * @brief Cardinality of a step's prerequisite.
+ * @see `TypeCardinality`
+ */
 template <typename S>
 constexpr int prerequisiteCardinality() {
   return TypeCardinality<typename S::Prerequisite>::value;
@@ -119,6 +122,9 @@ protected:
   }
 
 private:
+  /**
+   * @brief Call `get()` on each element of a tuple.
+   */
   template <typename STuple, std::size_t... Is>
   void getMultiple(std::index_sequence<Is...>) {
     using mockUnpack = int[];
