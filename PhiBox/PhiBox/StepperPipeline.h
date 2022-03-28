@@ -7,9 +7,10 @@
 
 #include <chrono>
 #include <map>
+#include <numeric> // accumulate
 #include <tuple>
 #include <typeindex>
-#include <utility>
+#include <utility> // enable_if
 
 namespace Phi {
 namespace Framework {
@@ -111,6 +112,12 @@ public:
       return it->second;
     }
     return -1;
+  }
+
+  double milliseconds() const {
+    return std::accumulate(m_milliseconds.begin(), m_milliseconds.end(), 0., [](const auto sum, const auto& e) {
+      return sum + e.second;
+    });
   }
 
 protected:
