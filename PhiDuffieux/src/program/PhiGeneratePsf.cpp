@@ -79,10 +79,18 @@ public:
     Chrono chrono;
 
     logger.info("Generating pupil mask...");
+    chrono.start();
     const auto pupil = generatePupil(maskSide, pupilDiameter / 2);
-    const auto zernike = Zernike::basis(pupilDiameter / 2, maskSide, alphaCount);
+    chrono.stop();
+    logger.info() << "  " << chrono.last().count() << "ms";
 
-    logger.info("Generating Zernike coefficients...");
+    logger.info("Generating Zernike basis...");
+    chrono.start();
+    const auto zernike = Zernike::basis(pupilDiameter / 2, maskSide, alphaCount);
+    chrono.stop();
+    logger.info() << "  " << chrono.last().count() << "ms";
+
+    logger.info("Generating random Zernike coefficients...");
     chrono.start();
     std::vector<double> alphas;
     Euclid::Fits::Test::RandomRaster<double, 1>({alphaCount}, -1000, 1000).moveTo(alphas);
@@ -96,9 +104,12 @@ public:
           "Zernike coefficient " + std::to_string(i));
     }
 
-    logger.info("Generating non-optical transfer function...");
+    logger.info("Generating identity non-optical transfer function...");
+    chrono.start();
     Fourier::ComplexDftBuffer nonOpticalTf({maskSide / 2 + 1, maskSide});
     std::fill(nonOpticalTf.begin(), nonOpticalTf.end(), 1.); // FIXME
+    chrono.stop();
+    logger.info() << "  " << chrono.last().count() << "ms";
 
     logger.info("Planning monochromatic DFTs and allocating memory...");
     chrono.start();
@@ -110,7 +121,7 @@ public:
 
     // Loop over lambdas to build the monochromatic system TFs
     for (double lambda : Spline::linspace(500., 900., lambdaCount)) {
-      system.updateLambda(lambda);
+      system.updateWavelength(lambda);
       const auto lambdaStr = std::to_string(int(lambda + .5)) + " nm";
       logger.info() << "Lambda = " << lambdaStr;
 
@@ -132,10 +143,11 @@ public:
       f.appendImage(lambdaStr + " warped system TF intensity", {}, norm2(warpedTf));
 
       logger.info("  Computing system PSF...");
-      chrono.start();
       const auto& psf = system.get<Duffieux::WarpedSystemPsf>();
       logger.info() << "    Inverse real DFT: " << system.milliseconds<Duffieux::WarpedSystemPsf>() << " ms";
       f.appendImage(lambdaStr + " system PSF", {}, psf);
+
+      logger.info() << "  Overall: " << system.milliseconds() << " ms";
     }
 
     logger.info() << "See " + f.filename();
