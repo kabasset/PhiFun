@@ -88,7 +88,7 @@ public:
   /**
    * @brief Update the wavelength.
    */
-  void updateLambda(double lambda) {
+  void updateWavelength(double lambda) {
     m_params.wavelength = lambda;
     m_params.wavenumber = 2 * m_pi / lambda;
     reset();

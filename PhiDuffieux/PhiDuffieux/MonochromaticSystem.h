@@ -55,8 +55,18 @@ public:
     return m_optics;
   }
 
-  void updateLambda(double lambda) {
-    m_optics.updateLambda(lambda);
+  /**
+   * @brief Get the wavelength.
+   */
+  double wavelength() const {
+    return m_optics.m_params.wavelength;
+  }
+
+  /**
+   * @brief Update the wavelength.
+   */
+  void updateWavelength(double lambda) {
+    m_optics.updateWavelength(lambda);
     reset();
   }
 
