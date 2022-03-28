@@ -13,6 +13,7 @@
 #include "PhiZernike/Zernike.h"
 
 #include <map>
+#include <omp.h>
 #include <string>
 
 using namespace Phi;
@@ -60,6 +61,7 @@ public:
     options.named("mask", "Pupil mask diameter", 1024L);
     options.named("pupil", "Pupil diameter", 512L);
     options.named("psf", "Output PSF diameter", 300L);
+    options.named("threads,j", "Number of threads", 1L);
 
     options.named("output", "Output file", std::string("/tmp/broadband.fits"));
 
@@ -76,6 +78,7 @@ public:
     const auto maskSide = args["mask"].as<long>();
     const auto pupilDiameter = args["pupil"].as<long>();
     const auto psfSide = args["psf"].as<long>();
+    const auto threadCount = args["threads"].as<long>();
 
     Euclid::Fits::MefFile f(args["output"].as<std::string>(), Euclid::Fits::FileMode::Overwrite);
 
@@ -108,6 +111,7 @@ public:
 
     logger.info("Monochromatic PSF computation...");
     chrono.start();
+    omp_set_num_threads(threadCount);
 #pragma omp parallel for
     for (auto& system : systems) {
       system.get<Duffieux::WarpedSystemPsf>();

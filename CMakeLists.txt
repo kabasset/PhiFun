@@ -6,6 +6,10 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8.12)
 
 find_package(ElementsProject)
 
+set(ELEMENTS_PARALLEL ON
+    CACHE STRING "Enable parallelization support with OpenMP"
+    FORCE)
+
 #===============================================================================
 # Declare project name and version
 # Example with dependency:
