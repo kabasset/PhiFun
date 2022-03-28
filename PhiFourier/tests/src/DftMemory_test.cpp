@@ -24,16 +24,16 @@ BOOST_AUTO_TEST_CASE(allocate_plan_test) {
   ComplexDftBuffer cin(shape);
   ComplexDftBuffer cout(shape);
   auto rc = FftwAllocator::createPlan<RealDftType>(rin, cout);
-  BOOST_TEST(rc != nullptr);
+  BOOST_TEST(rc.get() != nullptr);
   FftwAllocator::destroyPlan(rc);
   auto irc = FftwAllocator::createPlan<Inverse<RealDftType>>(cout, rin);
-  BOOST_TEST(irc != nullptr);
+  BOOST_TEST(irc.get() != nullptr);
   FftwAllocator::destroyPlan(irc);
   auto cc = FftwAllocator::createPlan<ComplexDftType>(cin, cout);
-  BOOST_TEST(cc != nullptr);
+  BOOST_TEST(cc.get() != nullptr);
   FftwAllocator::destroyPlan(cc);
   auto icc = FftwAllocator::createPlan<Inverse<ComplexDftType>>(cout, cin);
-  BOOST_TEST(icc != nullptr);
+  BOOST_TEST(icc.get() != nullptr);
   FftwAllocator::destroyPlan(icc);
 }
 

@@ -208,7 +208,7 @@ public:
    * @brief Compute the transform.
    */
   DftPlan& transform() {
-    fftw_execute(m_plan);
+    fftw_execute(*m_plan);
     return *this;
   }
 
@@ -242,7 +242,7 @@ private:
   /**
    * @brief The transform plan.
    */
-  fftw_plan m_plan;
+  Internal::FftwPlanPtr m_plan;
 };
 
 } // namespace Fourier

@@ -7,6 +7,7 @@
 
 #include <complex>
 #include <fftw3.h>
+#include <memory>
 
 namespace Phi {
 namespace Fourier {
@@ -15,12 +16,19 @@ namespace Fourier {
 namespace Internal {
 
 /**
+ * @brief RAII wrapper for `fftw_plan`.
+ * @details
+ * `FftwPlan::get()` returns an `fftw_plan`.
+ */
+using FftwPlanPtr = std::unique_ptr<fftw_plan>;
+
+/**
  * @brief Allocate a plan.
  * @warning
  * This does not instantiate the singleton, as opposed to `FftwAllocator::createPlan()`.
  */
 template <typename TType, typename TIn, typename TOut>
-fftw_plan allocateFftwPlan(TIn& in, TOut& out);
+FftwPlanPtr allocateFftwPlan(TIn& in, TOut& out);
 
 } // namespace Internal
 /// @endcond
@@ -98,7 +106,7 @@ public:
    * `in` and `out` are filled with garbage.
    */
   template <typename TType, typename TIn, typename TOut>
-  static fftw_plan createPlan(TIn& in, TOut& out) {
+  static Internal::FftwPlanPtr createPlan(TIn& in, TOut& out) {
     instantiate();
     return Internal::allocateFftwPlan<TType>(in, out);
   }
@@ -106,8 +114,10 @@ public:
   /**
    * @brief Destroy a plan.
    */
-  static void destroyPlan(fftw_plan plan) {
-    fftw_destroy_plan(plan);
+  static void destroyPlan(Internal::FftwPlanPtr& plan) {
+    if (plan) {
+      fftw_destroy_plan(*plan);
+    }
   }
 };
 

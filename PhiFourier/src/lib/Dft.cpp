@@ -15,53 +15,54 @@ Position RealDftType::Parent::outShape(const Position& shape) {
 }
 
 template <>
-fftw_plan Internal::allocateFftwPlan<RealDftType>(DftBuffer<double>& in, DftBuffer<std::complex<double>>& out) {
+Internal::FftwPlanPtr
+Internal::allocateFftwPlan<RealDftType>(DftBuffer<double>& in, DftBuffer<std::complex<double>>& out) {
   const auto& shape = in.shape();
-  return fftw_plan_dft_r2c_2d(
+  return std::make_unique<fftw_plan>(fftw_plan_dft_r2c_2d(
       shape[1],
       shape[0],
       reinterpret_cast<double*>(in.data()),
       reinterpret_cast<fftw_complex*>(out.data()),
-      FFTW_MEASURE);
+      FFTW_MEASURE));
 }
 
 template <>
-fftw_plan
+Internal::FftwPlanPtr
 Internal::allocateFftwPlan<Inverse<RealDftType>>(DftBuffer<std::complex<double>>& in, DftBuffer<double>& out) {
   const auto& shape = out.shape();
-  return fftw_plan_dft_c2r_2d(
+  return std::make_unique<fftw_plan>(fftw_plan_dft_c2r_2d(
       shape[1],
       shape[0],
       reinterpret_cast<fftw_complex*>(in.data()),
       reinterpret_cast<double*>(out.data()),
-      FFTW_MEASURE);
+      FFTW_MEASURE));
 }
 
 template <>
-fftw_plan
+Internal::FftwPlanPtr
 Internal::allocateFftwPlan<ComplexDftType>(DftBuffer<std::complex<double>>& in, DftBuffer<std::complex<double>>& out) {
   const auto& shape = in.shape();
-  return fftw_plan_dft_2d(
+  return std::make_unique<fftw_plan>(fftw_plan_dft_2d(
       shape[0],
       shape[1],
       reinterpret_cast<fftw_complex*>(in.data()),
       reinterpret_cast<fftw_complex*>(out.data()),
       FFTW_FORWARD,
-      FFTW_MEASURE);
+      FFTW_MEASURE));
 }
 
 template <>
-fftw_plan Internal::allocateFftwPlan<Inverse<ComplexDftType>>(
+Internal::FftwPlanPtr Internal::allocateFftwPlan<Inverse<ComplexDftType>>(
     DftBuffer<std::complex<double>>& in,
     DftBuffer<std::complex<double>>& out) {
   const auto& shape = out.shape();
-  return fftw_plan_dft_2d(
+  return std::make_unique<fftw_plan>(fftw_plan_dft_2d(
       shape[0],
       shape[1],
       reinterpret_cast<fftw_complex*>(in.data()),
       reinterpret_cast<fftw_complex*>(out.data()),
       FFTW_BACKWARD,
-      FFTW_MEASURE);
+      FFTW_MEASURE));
 }
 
 template <>
@@ -75,14 +76,14 @@ Position HermitianComplexDftType::Parent::outShape(const Position& shape) {
 }
 
 template <>
-fftw_plan Internal::allocateFftwPlan<HermitianComplexDftType>(
+Internal::FftwPlanPtr Internal::allocateFftwPlan<HermitianComplexDftType>(
     DftBuffer<std::complex<double>>& in,
     DftBuffer<std::complex<double>>& out) {
   return Internal::allocateFftwPlan<ComplexDftType>(in, out);
 }
 
 template <>
-fftw_plan Internal::allocateFftwPlan<Inverse<HermitianComplexDftType>>(
+Internal::FftwPlanPtr Internal::allocateFftwPlan<Inverse<HermitianComplexDftType>>(
     DftBuffer<std::complex<double>>& in,
     DftBuffer<std::complex<double>>& out) {
   return Internal::allocateFftwPlan<Inverse<ComplexDftType>>(in, out);
