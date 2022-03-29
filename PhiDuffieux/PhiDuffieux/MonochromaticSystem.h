@@ -39,6 +39,7 @@ public:
     Fourier::Position shape; ///< The broadband logical data shape
     const Fourier::ComplexDftBuffer& nonOpticalTf; ///< The non optical transfer function
     double distortion[4]; ///< The distortion coefficients ordered as: `ux, ux, vx, vy`
+    // FIXME add optical params
   };
 
   /**
@@ -47,6 +48,10 @@ public:
   MonochromaticSystem(MonochromaticOptics::Params opticalParams, Params nonOpticalParams) :
       m_params(std::move(nonOpticalParams)), m_optics(std::move(opticalParams)),
       m_psfToTf(m_optics.m_params.shape, m_optics.m_psfIntensity.data()), m_tfToPsf(m_params.shape) {}
+
+  const Params& params() const { // FIXME to StepperPipeline
+    return m_params;
+  }
 
   /**
    * @brief Get the optical model.

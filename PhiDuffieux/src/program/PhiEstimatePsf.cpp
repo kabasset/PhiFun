@@ -106,7 +106,7 @@ public:
           Duffieux::MonochromaticOptics::Params {lambda, pupil, zernike, alphas},
           Duffieux::MonochromaticSystem::Params {{psfSide, psfSide}, nonOpticalTf, {.0001, 0, 0, .0001}});
       chrono.stop();
-      logger.info() << "  " << wavelengthString(lambda) << " system done in: " << chrono.last().count() << " ms";
+      logger.info() << "  " << wavelengthString(lambda) << ": " << chrono.last().count() << " ms";
     }
 
     logger.info("Monochromatic PSF computation...");
@@ -115,8 +115,7 @@ public:
 #pragma omp parallel for
     for (auto& system : systems) {
       system.get<Duffieux::WarpedSystemPsf>();
-      logger.info()
-          << "  " << wavelengthString(system.wavelength()) << " nm PSF computation: " << system.milliseconds() << " ms";
+      logger.info() << "  " << wavelengthString(system.wavelength()) << ": " << system.milliseconds() << " ms";
     }
     chrono.stop();
     logger.info() << "Overall computation: " << chrono.last().count() << " ms";

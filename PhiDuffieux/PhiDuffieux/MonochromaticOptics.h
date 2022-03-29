@@ -71,6 +71,11 @@ public:
         wavelength(lambda), wavenumber(2 * m_pi / lambda), shape(mask.shape()), maskData(mask.data()),
         zernikesData(basis.data()), alphas(std::move(coefficients)) {}
 
+    void updateWavelength(double lambda) {
+      wavelength = lambda;
+      wavenumber = 2 * m_pi / lambda;
+    }
+
     double wavelength; ///< The current wavelength
     double wavenumber; ///< The current wave number
     Fourier::Position shape; ///< The logical data shape
@@ -84,6 +89,10 @@ public:
    */
   explicit MonochromaticOptics(Params params) :
       m_params(std::move(params)), m_pupilToPsf(m_params.shape), m_psfIntensity(m_params.shape) {}
+
+  const Params& params() const {
+    return m_params;
+  }
 
   /**
    * @brief Update the wavelength.
