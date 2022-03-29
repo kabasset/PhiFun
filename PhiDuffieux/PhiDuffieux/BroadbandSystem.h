@@ -15,24 +15,10 @@
 namespace Phi {
 namespace Duffieux {
 
-struct SystemTfList {
-  using Prerequisite = void;
-  using Return = std::list<const Fourier::ComplexDftBuffer*>;
-};
-
-struct BroadbandTf {
-  using Prerequisite = SystemTfList;
-  using Return = const Fourier::ComplexDftBuffer&;
-};
-
-struct BroadbandPsf {
-  using Prerequisite = BroadbandTf;
-  using Return = const Fourier::RealDftBuffer&;
-};
-
 class BroadbandSystem : public Framework::StepperPipeline<BroadbandSystem> {
 
 public:
+  using Stack = Euclid::Fits::VecRaster<std::complex<double>, 3>;
   struct Params {
     std::vector<double> wavelengths;
     std::vector<double> integrationWavelengths;
@@ -41,15 +27,14 @@ public:
   };
 
   BroadbandSystem(MonochromaticOptics::Params optics, MonochromaticSystem::Params system, Params params) :
-      m_params(std::move(params)), m_systems(), m_tfs(),
-      m_integrator(m_params.wavelengths, m_params.integrationWavelengths), m_tfToPsf(m_params.shape) {
-    m_systems.reserve(m_params.wavelengths.size());
-    for (auto lambda : m_params.wavelengths) {
-      auto mop = optics;
-      mop.updateWavelength(lambda);
-      m_systems.emplace_back(std::move(mop), system);
-    }
-  }
+      m_params(std::move(params)), // Broadband parameters
+      m_system(std::move(optics), std::move(system)), // Monochromatic parameters
+      m_tfs(
+          {m_system.optics().params().shape[0] / 2 + 1,
+           m_system.optics().params().shape[1],
+           m_params.wavelengths.size()}), // TF stack
+      m_integrator(m_params.wavelengths, m_params.integrationWavelengths), // Spline integrator
+      m_tfToPsf(m_params.shape) {} // iDFT
 
 protected:
   template <typename S>
@@ -60,23 +45,37 @@ protected:
 
 private:
   Params m_params;
-  std::vector<MonochromaticSystem> m_systems;
-  typename SystemTfList::Return m_tfs;
+  MonochromaticSystem m_system;
+  Stack m_tfs;
   Spline::SplineIntegrator m_integrator;
   Fourier::RealDft::Inverse m_tfToPsf;
 };
 
+struct SystemTfStack {
+  using Prerequisite = void;
+  using Return = BroadbandSystem::Stack;
+};
+
 template <>
-typename SystemTfList::Return BroadbandSystem::doGet<SystemTfList>() {
+typename SystemTfStack::Return BroadbandSystem::doGet<SystemTfStack>() {
   return m_tfs;
 }
 
 template <>
-void BroadbandSystem::doEvaluate<SystemTfList>() {
-  for (auto& s : m_systems) {
-    m_tfs.push_back(&s.get<SystemTf>());
+void BroadbandSystem::doEvaluate<SystemTfStack>() {
+  auto* it = m_tfs.data();
+  for (auto& lambda : m_params.wavelengths) {
+    m_system.updateWavelength(lambda);
+    const auto& tf = m_system.get<SystemTf>();
+    std::copy(tf.begin(), tf.end(), it);
+    it += shapeSize(m_params.shape);
   }
 }
+
+struct BroadbandTf {
+  using Prerequisite = SystemTfStack;
+  using Return = const Fourier::ComplexDftBuffer&;
+};
 
 template <>
 typename BroadbandTf::Return BroadbandSystem::doGet<BroadbandTf>() {
@@ -85,13 +84,13 @@ typename BroadbandTf::Return BroadbandSystem::doGet<BroadbandTf>() {
 
 template <>
 void BroadbandSystem::doEvaluate<BroadbandTf>() {
-  const auto& inShape = m_systems[0].optics().params().shape;
-  const auto& outShape = m_systems[0].params().shape;
+  const auto& inShape = m_tfs.shape();
+  const auto& outShape = m_tfToPsf.inShape();
   const auto width = outShape[0];
   const auto height = outShape[1];
   const double xFactor = double(inShape[0] - 1) / (width - 1);
   const double yFactor = double(inShape[1] - 1) / (height - 1);
-  const auto depth = m_systems.size();
+  const auto depth = inShape[2];
   std::vector<std::complex<double>> y(depth);
   std::vector<std::complex<double>> z(depth);
   auto* it = m_tfToPsf.in().begin();
@@ -99,15 +98,20 @@ void BroadbandSystem::doEvaluate<BroadbandTf>() {
     const double v = yFactor * j;
     for (long i = 0; i < width; ++i, ++it) {
       const double u = xFactor * i;
-      for (std::size_t l = 0; l < depth; ++l) {
+      for (long l = 0; l < depth; ++l) {
         const auto lambda = m_params.wavelengths[l];
-        y[l] = Image2D::bilinear<std::complex<double>>(m_systems[l].get<SystemTf>(), u / lambda, v / lambda);
+        y[l] = Image2D::bilinear<std::complex<double>>(m_tfs, u / lambda, v / lambda, l);
       }
       z = m_integrator.knotZ(y.data());
       *it = m_integrator.integrate(y.data(), z.data(), m_params.spectrum.data());
     }
   }
 }
+
+struct BroadbandPsf {
+  using Prerequisite = BroadbandTf;
+  using Return = const Fourier::RealDftBuffer&;
+};
 
 template <>
 typename BroadbandPsf::Return BroadbandSystem::doGet<BroadbandPsf>() {

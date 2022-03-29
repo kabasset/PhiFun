@@ -116,7 +116,7 @@ public:
     chrono.start();
     broadband.get<Duffieux::BroadbandPsf>();
     chrono.stop();
-    logger.info() << "Done in: " << broadband.milliseconds() << " ms";
+    logger.info() << "  Done in: " << broadband.milliseconds() << " ms";
 
     return ExitCode::OK;
   }
