@@ -40,7 +40,7 @@ public:
     Fourier::Position shape;
   };
 
-  BroadbandSystem(Params params, MonochromaticOptics::Params optics, MonochromaticSystem::Params system) :
+  BroadbandSystem(MonochromaticOptics::Params optics, MonochromaticSystem::Params system, Params params) :
       m_params(std::move(params)), m_systems(), m_tfs(),
       m_integrator(m_params.wavelengths, m_params.integrationWavelengths), m_tfToPsf(m_params.shape) {
     m_systems.reserve(m_params.wavelengths.size());
@@ -49,10 +49,6 @@ public:
       mop.updateWavelength(lambda);
       m_systems.emplace_back(std::move(mop), system);
     }
-  }
-  template <typename S>
-  typename S::Return get(long index) {
-    return m_systems[index].template get<S>();
   }
 
 protected:
@@ -103,9 +99,9 @@ void BroadbandSystem::doEvaluate<BroadbandTf>() {
     const double v = yFactor * j;
     for (long i = 0; i < width; ++i, ++it) {
       const double u = xFactor * i;
-      for (long l = 0; l < depth; ++l) {
+      for (std::size_t l = 0; l < depth; ++l) {
         const auto lambda = m_params.wavelengths[l];
-        y[l] = Image2D::bilinear<std::complex<double>>(m_systems[l].get<SystemTf>(), u / lambda, v / lambda, l);
+        y[l] = Image2D::bilinear<std::complex<double>>(m_systems[l].get<SystemTf>(), u / lambda, v / lambda);
       }
       z = m_integrator.knotZ(y.data());
       *it = m_integrator.integrate(y.data(), z.data(), m_params.spectrum.data());

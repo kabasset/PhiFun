@@ -8,7 +8,7 @@
 #include "EleFitsValidation/Chronometer.h"
 #include "ElementsKernel/ProgramHeaders.h"
 #include "PhiBox/SplineIntegrator.h"
-#include "PhiDuffieux/MonochromaticSystem.h"
+#include "PhiDuffieux/BroadbandSystem.h"
 #include "PhiFourier/Dft.h"
 #include "PhiZernike/Zernike.h"
 
@@ -57,7 +57,8 @@ public:
     Euclid::Fits::ProgramOptions options("Compute a broadband PSF from a pupil mask and randmom Zernike coefficients.");
 
     options.named("alphas", "Number of Zernike indices", 45L);
-    options.named("lambdas", "Number of wavelengths", 16L);
+    options.named("lambdas", "Number of wavelengths", 40L);
+    options.named("spline", "Number of integration wavelengths", 200L);
     options.named("mask", "Pupil mask diameter", 1024L);
     options.named("pupil", "Pupil diameter", 512L);
     options.named("psf", "Output PSF diameter", 300L);
@@ -75,6 +76,7 @@ public:
 
     const auto alphaCount = args["alphas"].as<long>();
     const auto lambdaCount = args["lambdas"].as<long>();
+    const auto splineCount = args["spline"].as<long>();
     const auto maskSide = args["mask"].as<long>();
     const auto pupilDiameter = args["pupil"].as<long>();
     const auto psfSide = args["psf"].as<long>();
@@ -98,27 +100,23 @@ public:
     logger.info("  Non-optical transfer function done.");
 
     logger.info("Planning DFTs and allocating buffers...");
-    std::vector<Duffieux::MonochromaticSystem> systems;
-    systems.reserve(lambdaCount);
-    for (double lambda : Spline::linspace(500., 900., lambdaCount)) {
-      chrono.start();
-      systems.emplace_back(
-          Duffieux::MonochromaticOptics::Params {lambda, pupil, zernike, alphas},
-          Duffieux::MonochromaticSystem::Params {{psfSide, psfSide}, nonOpticalTf, {.0001, 0, 0, .0001}});
-      chrono.stop();
-      logger.info() << "  " << wavelengthString(lambda) << ": " << chrono.last().count() << " ms";
-    }
-
-    logger.info("Monochromatic PSF computation...");
+    Duffieux::MonochromaticOptics::Params mop {1., pupil, zernike, alphas};
+    Duffieux::MonochromaticSystem::Params msp {{psfSide, psfSide}, nonOpticalTf, {.0001, 0, 0, .0001}};
+    Duffieux::BroadbandSystem::Params bsp {
+        Spline::linspace(500., 900., lambdaCount),
+        Spline::linspace(500., 900., splineCount),
+        Spline::linspace(1., 100., splineCount),
+        {psfSide, psfSide}};
     chrono.start();
-    omp_set_num_threads(threadCount);
-#pragma omp parallel for
-    for (auto& system : systems) {
-      system.get<Duffieux::WarpedSystemPsf>();
-      logger.info() << "  " << wavelengthString(system.wavelength()) << ": " << system.milliseconds() << " ms";
-    }
+    Duffieux::BroadbandSystem broadband(std::move(mop), std::move(msp), std::move(bsp));
     chrono.stop();
-    logger.info() << "Overall computation: " << chrono.last().count() << " ms";
+    logger.info() << "  Done in: " << chrono.last().count() << " ms";
+
+    logger.info("Broadband PSF computation...");
+    chrono.start();
+    broadband.get<Duffieux::BroadbandPsf>();
+    chrono.stop();
+    logger.info() << "Done in: " << broadband.milliseconds() << " ms";
 
     return ExitCode::OK;
   }
