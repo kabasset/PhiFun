@@ -41,7 +41,12 @@ public:
   /**
    * @brief Movable.
    */
-  DftBufferData(DftBufferData&&) = default;
+  DftBufferData(DftBufferData&& other) :
+      m_shared(other.m_shared), m_size(other.m_size), m_container(other.m_container) {
+    other.m_shared = false;
+    other.m_size = 0;
+    other.m_container = nullptr;
+  }
 
   /**
    * @brief Non-copyable.
@@ -51,7 +56,17 @@ public:
   /**
    * @brief Movable.
    */
-  DftBufferData& operator=(DftBufferData&&) = default;
+  DftBufferData& operator=(DftBufferData&& other) {
+    if (this != &other) {
+      m_shared = other.m_shared;
+      m_size = other.m_size;
+      m_container = other.m_container;
+      other.m_shared = false;
+      other.m_size = 0;
+      other.m_container = nullptr;
+    }
+    return *this;
+  }
 
   /**
    * @brief Destructor.

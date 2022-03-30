@@ -58,10 +58,11 @@ public:
 
     options.named("alphas", "Number of Zernike indices", 45L);
     options.named("lambdas", "Number of wavelengths", 40L);
-    options.named("spline", "Number of integration wavelengths", 200L);
+    options.named("steps", "Number of integration wavelengths", 200L);
     options.named("mask", "Pupil mask diameter", 1024L);
     options.named("pupil", "Pupil diameter", 512L);
     options.named("psf", "Output PSF diameter", 300L);
+    options.named("params", "Number of optimization parameters", 16L);
     options.named("threads,j", "Number of threads", 1L);
 
     options.named("output", "Output file", std::string("/tmp/broadband.fits"));
@@ -76,10 +77,11 @@ public:
 
     const auto alphaCount = args["alphas"].as<long>();
     const auto lambdaCount = args["lambdas"].as<long>();
-    const auto splineCount = args["spline"].as<long>();
+    const auto stepCount = args["steps"].as<long>();
     const auto maskSide = args["mask"].as<long>();
     const auto pupilDiameter = args["pupil"].as<long>();
     const auto psfSide = args["psf"].as<long>();
+    const auto paramCount = args["params"].as<long>();
     const auto threadCount = args["threads"].as<long>();
 
     Euclid::Fits::MefFile f(args["output"].as<std::string>(), Euclid::Fits::FileMode::Overwrite);
@@ -104,19 +106,31 @@ public:
     Duffieux::MonochromaticSystem::Params msp {{psfSide, psfSide}, nonOpticalTf, {.0001, 0, 0, .0001}};
     Duffieux::BroadbandSystem::Params bsp {
         Spline::linspace(500., 900., lambdaCount),
-        Spline::linspace(500., 900., splineCount),
-        Spline::linspace(1., 100., splineCount),
+        Spline::linspace(500., 900., stepCount),
+        Spline::linspace(1., 100., stepCount),
         {psfSide, psfSide}};
+    std::vector<Duffieux::BroadbandSystem> broadbands;
     chrono.start();
-    Duffieux::BroadbandSystem broadband(std::move(mop), std::move(msp), std::move(bsp));
+    for (long i = 0; i < paramCount; ++i) {
+      broadbands.emplace_back(mop, msp, bsp);
+    }
     chrono.stop();
     logger.info() << "  Done in: " << chrono.last().count() << " ms";
 
     logger.info("Broadband PSF computation...");
     chrono.start();
-    broadband.get<Duffieux::BroadbandPsf>();
+    omp_set_num_threads(threadCount);
+#pragma omp parallel for
+    for (auto& b : broadbands) {
+      b.get<Duffieux::BroadbandPsf>();
+    }
     chrono.stop();
-    logger.info() << "  Done in: " << broadband.milliseconds() << " ms";
+    logger.info() << "  Done in: " << chrono.last().count() << " ms";
+
+    for (auto& b : broadbands) {
+      f.appendImage("Broadband PSF", {}, b.get<Duffieux::BroadbandPsf>());
+    }
+    logger.info() << "  See: " << f.filename();
 
     return ExitCode::OK;
   }
