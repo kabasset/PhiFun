@@ -14,32 +14,6 @@ namespace Phi {
 namespace Duffieux {
 
 /**
- * @brief Complex pupil amplitude computed from the phase and pupil mask.
- * @details
- * The phase is obtained from a Zernike basis and Zernike coefficients.
- */
-struct PupilAmplitude {
-  using Prerequisite = void;
-  using Return = const Fourier::ComplexDftBuffer&;
-};
-
-/**
- * @brief Complex PSF amplitude computed as the inverse DFT of the complex pupil amplitude.
- */
-struct PsfAmplitude {
-  using Prerequisite = PupilAmplitude;
-  using Return = const Fourier::ComplexDftBuffer&;
-};
-
-/**
- * @brief PSF intensity computed as the norm squared of the PSF amplitude.
- */
-struct PsfIntensity {
-  using Prerequisite = PsfAmplitude;
-  using Return = const Fourier::RealDftBuffer&;
-};
-
-/**
  * @brief Monochromatic optical model.
  * @details
  * Contains parameters and data buffers and provides step-by-step transforms.
@@ -136,19 +110,16 @@ private:
   Fourier::RealDftBuffer m_psfIntensity; ///< The PSF intensity
 };
 
+/**
+ * @brief Complex pupil amplitude computed from the phase and pupil mask.
+ * @details
+ * The phase is obtained from a Zernike basis and Zernike coefficients.
+ */
+struct PupilAmplitude : Framework::PipelineStep<void, const Fourier::ComplexDftBuffer&> {};
+
 template <>
 inline const Fourier::ComplexDftBuffer& MonochromaticOptics::doGet<PupilAmplitude>() {
   return m_pupilToPsf.in();
-}
-
-template <>
-inline const Fourier::ComplexDftBuffer& MonochromaticOptics::doGet<PsfAmplitude>() {
-  return m_pupilToPsf.out();
-}
-
-template <>
-inline const Fourier::RealDftBuffer& MonochromaticOptics::doGet<PsfIntensity>() {
-  return m_psfIntensity;
 }
 
 template <>
@@ -166,9 +137,29 @@ inline void MonochromaticOptics::doEvaluate<PupilAmplitude>() {
   }
 }
 
+/**
+ * @brief Complex PSF amplitude computed as the inverse DFT of the complex pupil amplitude.
+ */
+struct PsfAmplitude : Framework::PipelineStep<PupilAmplitude, const Fourier::ComplexDftBuffer&> {};
+
+template <>
+inline const Fourier::ComplexDftBuffer& MonochromaticOptics::doGet<PsfAmplitude>() {
+  return m_pupilToPsf.out();
+}
+
 template <>
 inline void MonochromaticOptics::doEvaluate<PsfAmplitude>() {
   m_pupilToPsf.transform().normalize();
+}
+
+/**
+ * @brief PSF intensity computed as the norm squared of the PSF amplitude.
+ */
+struct PsfIntensity : Framework::PipelineStep<PsfAmplitude, const Fourier::RealDftBuffer&> {};
+
+template <>
+inline const Fourier::RealDftBuffer& MonochromaticOptics::doGet<PsfIntensity>() {
+  return m_psfIntensity;
 }
 
 template <>

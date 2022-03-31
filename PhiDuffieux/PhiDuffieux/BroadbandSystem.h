@@ -32,7 +32,7 @@ public:
       m_tfs(
           {m_system.optics().params().shape[0] / 2 + 1,
            m_system.optics().params().shape[1],
-           m_params.wavelengths.size()}), // TF stack
+           long(m_params.wavelengths.size())}), // TF stack
       m_integrator(m_params.wavelengths, m_params.integrationWavelengths), // Spline integrator
       m_tfToPsf(m_params.shape) {} // iDFT
 
@@ -51,10 +51,10 @@ private:
   Fourier::RealDft::Inverse m_tfToPsf;
 };
 
-struct SystemTfStack {
-  using Prerequisite = void;
-  using Return = const BroadbandSystem::Stack&;
-};
+/**
+ * @brief The stack of monochromatic system TFs.
+ */
+struct SystemTfStack : Framework::PipelineStep<void, const BroadbandSystem::Stack&> {};
 
 template <>
 typename SystemTfStack::Return BroadbandSystem::doGet<SystemTfStack>() {
@@ -72,10 +72,10 @@ void BroadbandSystem::doEvaluate<SystemTfStack>() {
   }
 }
 
-struct BroadbandTf {
-  using Prerequisite = SystemTfStack;
-  using Return = const Fourier::ComplexDftBuffer&;
-};
+/**
+ * @brief The broadband TF.
+ */
+struct BroadbandTf : Framework::PipelineStep<SystemTfStack, const Fourier::ComplexDftBuffer&> {};
 
 template <>
 typename BroadbandTf::Return BroadbandSystem::doGet<BroadbandTf>() {
@@ -108,10 +108,10 @@ void BroadbandSystem::doEvaluate<BroadbandTf>() {
   }
 }
 
-struct BroadbandPsf {
-  using Prerequisite = BroadbandTf;
-  using Return = const Fourier::RealDftBuffer&;
-};
+/**
+ * @brief The broadband PSF.
+ */
+struct BroadbandPsf : Framework::PipelineStep<BroadbandTf, const Fourier::RealDftBuffer&> {};
 
 template <>
 typename BroadbandPsf::Return BroadbandSystem::doGet<BroadbandPsf>() {

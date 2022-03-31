@@ -11,21 +11,6 @@
 namespace Phi {
 namespace Duffieux {
 
-struct SystemTf {
-  using Prerequisite = PsfIntensity;
-  using Return = const Fourier::ComplexDftBuffer&;
-};
-
-struct WarpedSystemTf {
-  using Prerequisite = SystemTf;
-  using Return = const Fourier::ComplexDftBuffer&;
-};
-
-struct WarpedSystemPsf {
-  using Prerequisite = WarpedSystemTf;
-  using Return = const Fourier::RealDftBuffer&;
-};
-
 /**
  * @brief Monochromatic system model.
  */
@@ -99,25 +84,30 @@ private:
   Fourier::RealDft::Inverse m_tfToPsf; ///< The warped TF to PSF transform
 };
 
+/**
+ * @brief The system TF without distortion in the monochromatic grid.
+ */
+struct SystemTf : Framework::PipelineStep<PsfIntensity, const Fourier::ComplexDftBuffer&> {};
+
 template <>
 inline const Fourier::ComplexDftBuffer& MonochromaticSystem::doGet<SystemTf>() {
   return m_psfToTf.out();
 }
 
 template <>
-inline const Fourier::ComplexDftBuffer& MonochromaticSystem::doGet<WarpedSystemTf>() {
-  return m_tfToPsf.in();
-}
-
-template <>
-inline const Fourier::RealDftBuffer& MonochromaticSystem::doGet<WarpedSystemPsf>() {
-  return m_tfToPsf.out();
-}
-
-template <>
 inline void MonochromaticSystem::doEvaluate<SystemTf>() {
   m_psfToTf.transform();
   m_psfToTf.out() *= m_params.nonOpticalTf;
+}
+
+/**
+ * @brief The regrided and distorted TF.
+ */
+struct WarpedSystemTf : Framework::PipelineStep<SystemTf, const Fourier::ComplexDftBuffer&> {};
+
+template <>
+inline const Fourier::ComplexDftBuffer& MonochromaticSystem::doGet<WarpedSystemTf>() {
+  return m_tfToPsf.in();
 }
 
 template <>
@@ -142,6 +132,16 @@ inline void MonochromaticSystem::doEvaluate<WarpedSystemTf>() {
       *it = Image2D::bilinear<std::complex<double>>(stf, u, v);
     }
   }
+}
+
+/**
+ * @brief The regrided and distorted PSF.
+ */
+struct WarpedSystemPsf : Framework::PipelineStep<WarpedSystemTf, const Fourier::RealDftBuffer&> {};
+
+template <>
+inline const Fourier::RealDftBuffer& MonochromaticSystem::doGet<WarpedSystemPsf>() {
+  return m_tfToPsf.out();
 }
 
 template <>

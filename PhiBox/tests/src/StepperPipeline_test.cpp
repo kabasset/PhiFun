@@ -8,31 +8,25 @@
 
 //-----------------------------------------------------------------------------
 
-struct Step0 {
-  using Prerequisite = void;
-  using Return = char;
+using namespace Phi::Framework;
+
+struct Step0 : PipelineStep<void, char> {
   Return value = 0;
 };
 
-struct Step1a {
-  using Prerequisite = Step0;
-  using Return = short;
+struct Step1a : PipelineStep<Step0, short> {
   Return value = 0;
 };
 
-struct Step1b {
-  using Prerequisite = Step0;
-  using Return = int;
+struct Step1b : PipelineStep<Step0, int> {
   Return value = 0;
 };
 
-struct Step2 {
-  using Prerequisite = std::tuple<Step1a, Step1b>;
-  using Return = long;
+struct Step2 : PipelineStep<std::tuple<Step1a, Step1b>, long> {
   Return value = 0;
 };
 
-class Dag : public Phi::Framework::StepperPipeline<Dag> {
+class Dag : public StepperPipeline<Dag> {
 public:
   Step0::Return get0() const {
     return m_0.value;

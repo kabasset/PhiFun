@@ -194,6 +194,38 @@ private:
   std::map<std::type_index, double> m_milliseconds;
 };
 
+/**
+ * @brief Helper class to declare pipeline steps.
+ * @details
+ * Usage:
+ * \code
+ * struct Step0 : PipelineStep<void, char> {};
+ * struct Step1a : PipelineStep<Step0, short> {};
+ * struct Step1b : PipelineStep<Step0, int> {};
+ * struct Step2 : PipelineStep<std::tuple<Step1a, Step1b>, long>{};
+ * \endcode
+ */
+template <typename TPrerequisite, typename TReturn>
+struct PipelineStep {
+  /**
+   * @brief The step's prerequisite's.
+   * @details
+   * Can be:
+   * - `void` for no prerequisite;
+   * - `std::tuple` for multiple prerequisites;
+   * - Any other type for simple prerequisite.
+   */
+  using Prerequisite = TPrerequisite;
+
+  /**
+   * @brief The return type of the step.
+   * @details
+   * This is exactly the return type of the `StepperPipeline::get()`
+   * which can for example be a const reference.
+   */
+  using Return = TReturn;
+};
+
 } // namespace Framework
 } // namespace Phi
 
