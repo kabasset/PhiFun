@@ -118,8 +118,8 @@ public:
     logger.info() << "  Done in: " << chrono.last().count() << " ms";
 
     logger.info("Broadband PSF computation...");
-    chrono.start();
     omp_set_num_threads(threadCount);
+    chrono.start();
 #pragma omp parallel for
     for (auto& b : broadbands) {
       b.get<Duffieux::BroadbandPsf>();
@@ -128,7 +128,9 @@ public:
     logger.info() << "  Done in: " << chrono.last().count() << " ms";
 
     for (auto& b : broadbands) {
-      f.appendImage("Broadband PSF", {}, b.get<Duffieux::BroadbandPsf>());
+      const auto i = std::distance(broadbands.data(), &b) + 1;
+      logger.info() << "    Parameter #" << i << ": " << b.milliseconds() << " ms";
+      f.appendImage("Broadband PSF " + std::to_string(i), {}, b.get<Duffieux::BroadbandPsf>());
     }
     logger.info() << "  See: " << f.filename();
 

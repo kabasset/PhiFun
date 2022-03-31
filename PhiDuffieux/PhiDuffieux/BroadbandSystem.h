@@ -53,7 +53,7 @@ private:
 
 struct SystemTfStack {
   using Prerequisite = void;
-  using Return = BroadbandSystem::Stack;
+  using Return = const BroadbandSystem::Stack&;
 };
 
 template <>
