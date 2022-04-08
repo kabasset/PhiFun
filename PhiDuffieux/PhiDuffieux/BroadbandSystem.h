@@ -19,22 +19,25 @@ class BroadbandSystem : public Framework::StepperPipeline<BroadbandSystem> {
 
 public:
   using Stack = Euclid::Fits::VecRaster<std::complex<double>, 3>;
-  struct Params {
+  struct Parameters {
     std::vector<double> wavelengths;
     std::vector<double> integrationWavelengths;
-    std::vector<double> spectrum;
+    std::vector<double> integrationWeight;
     Fourier::Position shape;
   };
 
-  BroadbandSystem(MonochromaticOptics::Parameters optics, MonochromaticSystem::Parameters system, Params params) :
-      m_params(std::move(params)), // Broadband parameters
+  BroadbandSystem(
+      MonochromaticOptics::Parameters optics,
+      MonochromaticSystem::Parameters system,
+      Parameters parameters) :
+      m_parameters(std::move(parameters)), // Broadband parameters
       m_system(std::move(optics), std::move(system)), // Monochromatic parameters
       m_tfs(
           {m_system.optics().parameters().shape[0] / 2 + 1,
            m_system.optics().parameters().shape[1],
-           long(m_params.wavelengths.size())}), // TF stack
-      m_integrator(m_params.wavelengths, m_params.integrationWavelengths), // Spline integrator
-      m_tfToPsf(m_params.shape) {} // iDFT
+           long(m_parameters.wavelengths.size())}), // TF stack
+      m_integrator(m_parameters.wavelengths, m_parameters.integrationWavelengths), // Spline integrator
+      m_tfToPsf(m_parameters.shape) {} // iDFT
 
 protected:
   template <typename S>
@@ -44,7 +47,7 @@ protected:
   void doEvaluate();
 
 private:
-  Params m_params;
+  Parameters m_parameters;
   MonochromaticSystem m_system;
   Stack m_tfs;
   Spline::SplineIntegrator m_integrator;
@@ -64,11 +67,11 @@ typename SystemTfStack::Return BroadbandSystem::doGet<SystemTfStack>() {
 template <>
 void BroadbandSystem::doEvaluate<SystemTfStack>() {
   auto* it = m_tfs.data();
-  for (auto& lambda : m_params.wavelengths) {
+  for (auto& lambda : m_parameters.wavelengths) {
     m_system.update(lambda);
     const auto& tf = m_system.get<SystemTf>();
     std::copy(tf.begin(), tf.end(), it);
-    it += shapeSize(m_params.shape);
+    it += shapeSize(m_parameters.shape);
   }
 }
 
@@ -99,11 +102,11 @@ void BroadbandSystem::doEvaluate<BroadbandTf>() {
     for (long i = 0; i < width; ++i, ++it) {
       const double u = xFactor * i;
       for (long l = 0; l < depth; ++l) {
-        const auto lambda = m_params.wavelengths[l];
+        const auto lambda = m_parameters.wavelengths[l];
         y[l] = Image2D::bilinear<std::complex<double>>(m_tfs, u / lambda, v / lambda, l);
       }
       z = m_integrator.knotZ(y.data());
-      *it = m_integrator.integrate(y.data(), z.data(), m_params.spectrum.data());
+      *it = m_integrator.integrate(y.data(), z.data(), m_parameters.integrationWeight.data());
     }
   }
 }

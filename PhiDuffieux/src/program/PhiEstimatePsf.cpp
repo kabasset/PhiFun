@@ -104,7 +104,7 @@ public:
     logger.info("Planning DFTs and allocating buffers...");
     Duffieux::MonochromaticOptics::Parameters mop {1., pupil.shape(), pupil.data(), zernike.data(), alphas};
     Duffieux::MonochromaticSystem::Parameters msp {{psfSide, psfSide}, nonOpticalTf.data(), {.0001, 0, 0, .0001}};
-    Duffieux::BroadbandSystem::Params bsp {
+    Duffieux::BroadbandSystem::Parameters bsp {
         Spline::linspace(500., 900., lambdaCount),
         Spline::linspace(500., 900., stepCount),
         Spline::linspace(1., 100., stepCount),
