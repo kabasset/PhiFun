@@ -144,8 +144,8 @@ using ComplexDftBuffer = DftBuffer<std::complex<double>>;
 /**
  * @brief Multiply by a buffer.
  */
-template <typename T>
-DftBuffer<T>& operator*=(DftBuffer<T>& lhs, const DftBuffer<T>& rhs) {
+template <typename T, typename TRaster>
+DftBuffer<T>& operator*=(DftBuffer<T>& lhs, const TRaster& rhs) {
   std::transform(lhs.begin(), lhs.end(), rhs.begin(), lhs.begin(), [](const T& l, const T& r) {
     return l * r;
   });
