@@ -114,14 +114,14 @@ public:
     logger.info("Planning monochromatic DFTs and allocating memory...");
     chrono.start();
     Duffieux::MonochromaticSystem system(
-        {.500, pupil, zernike, alphas},
-        {{psfSide, psfSide}, nonOpticalTf, {.0001, 0, 0, .0001}});
+        {.500, pupil.shape(), pupil.data(), zernike.data(), alphas},
+        {{psfSide, psfSide}, nonOpticalTf.data(), {.0001, 0, 0, .0001}});
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
 
     // Loop over lambdas to build the monochromatic system TFs
     for (double lambda : Spline::linspace(500., 900., lambdaCount)) {
-      system.updateWavelength(lambda);
+      system.update(lambda);
       const auto lambdaStr = std::to_string(int(lambda + .5)) + " nm";
       logger.info() << "Lambda = " << lambdaStr;
 

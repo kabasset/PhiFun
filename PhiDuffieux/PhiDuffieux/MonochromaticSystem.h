@@ -18,24 +18,33 @@ class MonochromaticSystem : public Framework::StepperPipeline<MonochromaticSyste
 
 public:
   /**
+   * @brief Distortion model.
+   */
+  struct Distortion {
+    double ux, uy, vx, vy; ///< The distortion parameters
+  };
+
+  /**
    * @brief Non optical parameters.
    */
-  struct Params {
+  struct Parameters {
     Fourier::Position shape; ///< The broadband logical data shape
-    const Fourier::ComplexDftBuffer& nonOpticalTf; ///< The non optical transfer function
-    double distortion[4]; ///< The distortion coefficients ordered as: `ux, ux, vx, vy`
-    // FIXME add optical params
+    const std::complex<double>* nonOpticalTf; ///< The non optical transfer function
+    Distortion distortion; ///< The distortion model
   };
 
   /**
    * @brief Constructor.
    */
-  MonochromaticSystem(MonochromaticOptics::Params opticalParams, Params nonOpticalParams) :
-      m_params(std::move(nonOpticalParams)), m_optics(std::move(opticalParams)),
-      m_psfToTf(m_optics.m_params.shape, m_optics.m_psfIntensity.data()), m_tfToPsf(m_params.shape) {}
+  MonochromaticSystem(MonochromaticOptics::Parameters opticalParameters, Parameters nonOpticalParameters) :
+      m_parameters(std::move(nonOpticalParameters)), m_optics(std::move(opticalParameters)),
+      m_psfToTf(m_optics.m_parameters.shape, m_optics.m_psfIntensity.data()), m_tfToPsf(m_parameters.shape) {}
 
-  const Params& params() const { // FIXME to StepperPipeline
-    return m_params;
+  /**
+   * @brief Get the parameters.
+   */
+  const Parameters& parameters() const {
+    return m_parameters;
   }
 
   /**
@@ -49,14 +58,23 @@ public:
    * @brief Get the wavelength.
    */
   double wavelength() const {
-    return m_optics.m_params.wavelength;
+    return m_optics.wavelength();
   }
 
   /**
-   * @brief Update the wavelength.
+   * @brief Update the wavelength and optionally the associated parameters.
+   * @param wavelength The new wavelength
+   * @param coefficients The new Zernike coefficients
+   * @param nonOpticalTf The new non optical TF
+   * @warning
+   * This method resets the pipeline.
    */
-  void updateWavelength(double lambda) {
-    m_optics.updateWavelength(lambda);
+  void
+  update(double wavelength, const double* coefficients = nullptr, const std::complex<double>* nonOpticalTf = nullptr) {
+    m_optics.update(wavelength, coefficients);
+    if (nonOpticalTf) {
+      m_parameters.nonOpticalTf = nonOpticalTf;
+    }
     reset();
   }
 
@@ -78,7 +96,7 @@ protected:
   }
 
 private:
-  Params m_params; ///< The system parameters
+  Parameters m_parameters; ///< The system parameters
   MonochromaticOptics m_optics; ///< The optical model
   Fourier::RealDft m_psfToTf; ///< The unwarped PSF to TF transform
   Fourier::RealDft::Inverse m_tfToPsf; ///< The warped TF to PSF transform
@@ -97,7 +115,8 @@ inline const Fourier::ComplexDftBuffer& MonochromaticSystem::doGet<SystemTf>() {
 template <>
 inline void MonochromaticSystem::doEvaluate<SystemTf>() {
   m_psfToTf.transform();
-  m_psfToTf.out() *= m_params.nonOpticalTf;
+  const Euclid::Fits::PtrRaster<const std::complex<double>> noTf(m_psfToTf.outShape(), m_parameters.nonOpticalTf);
+  m_psfToTf.out() *= noTf;
 }
 
 /**
@@ -114,13 +133,13 @@ template <>
 inline void MonochromaticSystem::doEvaluate<WarpedSystemTf>() {
   const auto width = m_tfToPsf.in().shape()[0];
   const auto height = m_tfToPsf.in().shape()[1];
-  const auto lambda = m_optics.m_params.wavelength;
-  const double xFactor = lambda * (m_params.shape[0] - 1) / (width - 1);
-  const double yFactor = lambda * (m_params.shape[1] - 1) / (height - 1);
-  const double uxFactor = m_params.distortion[0] * xFactor;
-  const double uyFactor = m_params.distortion[1] * yFactor;
-  const double vxFactor = m_params.distortion[2] * xFactor;
-  const double vyFactor = m_params.distortion[3] * yFactor;
+  const auto wavelength = m_optics.m_parameters.wavelength;
+  const double xFactor = wavelength * (m_parameters.shape[0] - 1) / (width - 1);
+  const double yFactor = wavelength * (m_parameters.shape[1] - 1) / (height - 1);
+  const double uxFactor = m_parameters.distortion.ux * xFactor;
+  const double uyFactor = m_parameters.distortion.uy * yFactor;
+  const double vxFactor = m_parameters.distortion.vx * xFactor;
+  const double vyFactor = m_parameters.distortion.vy * yFactor;
   auto* it = m_tfToPsf.in().begin();
   auto& stf = m_psfToTf.out();
   for (long y = 0; y < height; ++y) {

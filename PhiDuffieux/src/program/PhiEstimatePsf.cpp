@@ -102,8 +102,8 @@ public:
     logger.info("  Non-optical transfer function done.");
 
     logger.info("Planning DFTs and allocating buffers...");
-    Duffieux::MonochromaticOptics::Params mop {1., pupil, zernike, alphas};
-    Duffieux::MonochromaticSystem::Params msp {{psfSide, psfSide}, nonOpticalTf, {.0001, 0, 0, .0001}};
+    Duffieux::MonochromaticOptics::Parameters mop {1., pupil.shape(), pupil.data(), zernike.data(), alphas};
+    Duffieux::MonochromaticSystem::Parameters msp {{psfSide, psfSide}, nonOpticalTf.data(), {.0001, 0, 0, .0001}};
     Duffieux::BroadbandSystem::Params bsp {
         Spline::linspace(500., 900., lambdaCount),
         Spline::linspace(500., 900., stepCount),

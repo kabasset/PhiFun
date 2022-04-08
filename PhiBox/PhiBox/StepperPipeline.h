@@ -114,6 +114,9 @@ public:
     return -1;
   }
 
+  /**
+   * @brief Get the total elapsed time.
+   */
   double milliseconds() const {
     return std::accumulate(m_milliseconds.begin(), m_milliseconds.end(), 0., [](const auto sum, const auto& e) {
       return sum + e.second;
@@ -184,10 +187,14 @@ private:
   }
 
 private:
+  /**
+   * @brief Get the key of a step `S`.
+   */
   template <typename S>
   std::type_index key() const {
     return std::type_index(typeid(S));
   }
+
   /**
    * @brief The set of performed steps and durations.
    */

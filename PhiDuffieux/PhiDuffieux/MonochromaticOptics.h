@@ -8,6 +8,7 @@
 #include "PhiBox/StepperPipeline.h"
 #include "PhiFourier/Dft.h"
 
+#include <algorithm>
 #include <vector>
 
 namespace Phi {
@@ -31,49 +32,46 @@ public:
   /**
    * @brief Optical parameters.
    */
-  struct Params {
-
-    /**
-     * @brief Constructor.
-     * @param lambda The wavelength
-     * @param diameter The pupil mask
-     * @param basis The Zernike basis
-     * @param alphas The Zernike coefficients
-     */
-    template <typename TMask, typename TZernikes>
-    Params(double lambda, const TMask& mask, const TZernikes& basis, std::vector<double> coefficients) :
-        wavelength(lambda), wavenumber(2 * m_pi / lambda), shape(mask.shape()), maskData(mask.data()),
-        zernikesData(basis.data()), alphas(std::move(coefficients)) {}
-
-    void updateWavelength(double lambda) {
-      wavelength = lambda;
-      wavenumber = 2 * m_pi / lambda;
-    }
-
+  struct Parameters {
     double wavelength; ///< The current wavelength
-    double wavenumber; ///< The current wave number
-    Fourier::Position shape; ///< The logical data shape
-    const double* maskData; ///< The pupil mask data
-    const double* zernikesData; ///< The Zernike basis data
-    std::vector<double> alphas; ///< The Zernike coefficients
+    Fourier::Position shape; ///< The input data shape
+    const double* pupilMask; ///< The pupil mask data
+    const double* zernikeBasis; ///< The Zernike basis data
+    std::vector<double> zernikeCoefficients; ///< The Zernike coefficients
   };
 
   /**
    * @brief Constructor.
    */
-  explicit MonochromaticOptics(Params params) :
-      m_params(std::move(params)), m_pupilToPsf(m_params.shape), m_psfIntensity(m_params.shape) {}
+  explicit MonochromaticOptics(Parameters parameters) :
+      m_parameters(std::move(parameters)), m_wavenumber(2 * m_pi / m_parameters.wavelength),
+      m_pupilToPsf(m_parameters.shape), m_psfIntensity(m_parameters.shape) {}
 
-  const Params& params() const {
-    return m_params;
+  /**
+   * @brief Get the optical parameters.
+   */
+  const Parameters& parameters() const {
+    return m_parameters;
   }
 
   /**
-   * @brief Update the wavelength.
+   * @brief Get the wavelength.
    */
-  void updateWavelength(double lambda) {
-    m_params.wavelength = lambda;
-    m_params.wavenumber = 2 * m_pi / lambda;
+  double wavelength() const {
+    return m_parameters.wavelength;
+  }
+
+  /**
+   * @brief Update the wavelength and optionally the Zernike coefficients.
+   * @warning
+   * This method resets the pipeline.
+   */
+  void update(double wavelength, const double* coefficients = nullptr) {
+    m_parameters.wavelength = wavelength;
+    m_wavenumber = 2 * m_pi / wavelength;
+    if (coefficients) {
+      std::copy_n(coefficients, m_parameters.zernikeCoefficients.size(), m_parameters.zernikeCoefficients.data());
+    }
     reset();
   }
 
@@ -96,16 +94,21 @@ private:
    * @param mask The local pupil mask value
    * @param zernikes The local Zernike basis values
    */
-  std::complex<double> evalPhase(double mask, const double* zernikes) {
+  inline std::complex<double> evalPhase(double mask, const double* zernikes) {
     double minusPhi = 0;
     auto zIt = zernikes;
-    for (auto aIt = m_params.alphas.begin(); aIt != m_params.alphas.end(); ++aIt, ++zIt) {
+    for (auto aIt = m_parameters.zernikeCoefficients.begin(); aIt != m_parameters.zernikeCoefficients.end();
+         ++aIt, ++zIt) {
       minusPhi -= (*aIt) * (*zIt);
     }
-    return mask * std::exp(std::complex<double>(0, m_params.wavenumber * minusPhi));
+    const auto arg = m_wavenumber * minusPhi;
+    return {mask * std::cos(arg), mask * std::sin(arg)};
+    // return mask * std::exp(std::complex<double>(0, m_wavenumber * minusPhi));
+    // std::exp is slower when the argument is pure imaginary
   }
 
-  Params m_params; ///< The optical parameters
+  Parameters m_parameters; ///< The optical parameters
+  double m_wavenumber; ///< The wave number
   Fourier::ComplexDft m_pupilToPsf; ///< The pupil amplitude to PSF amplitude DFT
   Fourier::RealDftBuffer m_psfIntensity; ///< The PSF intensity
 };
@@ -124,9 +127,9 @@ inline const Fourier::ComplexDftBuffer& MonochromaticOptics::doGet<PupilAmplitud
 
 template <>
 inline void MonochromaticOptics::doEvaluate<PupilAmplitude>() {
-  const auto size = m_params.alphas.size();
-  const double* maskIt = m_params.maskData;
-  const double* zernikesIt = m_params.zernikesData;
+  const auto size = m_parameters.zernikeCoefficients.size();
+  const double* maskIt = m_parameters.pupilMask;
+  const double* zernikesIt = m_parameters.zernikeBasis;
   auto& amp = m_pupilToPsf.in();
   for (auto it = amp.begin(); it != amp.end(); ++it, ++maskIt, zernikesIt += size) {
     if (*maskIt != 0) {
