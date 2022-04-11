@@ -103,7 +103,7 @@ void BroadbandSystem::doEvaluate<BroadbandTf>() {
       const double u = xFactor * i;
       for (long l = 0; l < depth; ++l) {
         const auto lambda = m_parameters.wavelengths[l];
-        y[l] = Image2D::bilinear<std::complex<double>>(m_tfs, u / lambda, v / lambda, l);
+        y[l] = Image2D::bilinearZero<std::complex<double>>(m_tfs, u / lambda, v / lambda, l);
       }
       z = m_integrator.knotZ(y.data());
       *it = m_integrator.integrate(y.data(), z.data(), m_parameters.integrationWeight.data());

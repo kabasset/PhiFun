@@ -148,7 +148,7 @@ inline void MonochromaticSystem::doEvaluate<WarpedSystemTf>() {
     for (long x = 0; x < width; ++x, ++it) {
       const double u = uxFactor * x + uyValue;
       const double v = vxFactor * x + vyValue;
-      *it = Image2D::bilinear<std::complex<double>>(stf, u, v);
+      *it = Image2D::bilinearZero<std::complex<double>>(stf, u, v);
     }
   }
 }

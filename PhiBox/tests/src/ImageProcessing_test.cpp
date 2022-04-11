@@ -21,7 +21,7 @@ BOOST_AUTO_TEST_CASE(bilinear_test) {
   const double xFactor = 1. / (output.length<0>() - 1);
   const double yFactor = 1. / (output.length<1>() - 1);
   for (const auto& p : output.domain()) {
-    output[p] = bilinear<double>(input, p[0] * xFactor, p[1] * yFactor);
+    output[p] = bilinearNearest<double>(input, p[0] * xFactor, p[1] * yFactor);
   }
 
   // FIXME Strict equality?
@@ -30,7 +30,7 @@ BOOST_AUTO_TEST_CASE(bilinear_test) {
   BOOST_TEST((output.at({0, -1})) == 3);
   BOOST_TEST((output.at({-1, -1})) == 1);
 
-  Euclid::Fits::SifFile f("/tmp/bilinear.fits", Euclid::Fits::FileMode::Overwrite);
+  Euclid::Fits::SifFile f("/tmp/bilinear.fits", Euclid::Fits::FileMode::Overwrite); // FIXME rm
   f.writeRaster(output);
 }
 
