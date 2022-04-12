@@ -24,14 +24,63 @@ BOOST_AUTO_TEST_CASE(bilinear_test) {
     output[p] = bilinearNearest<double>(input, p[0] * xFactor, p[1] * yFactor);
   }
 
-  // FIXME Strict equality?
-  BOOST_TEST((output[{0, 0}]) == 0);
-  BOOST_TEST((output.at({-1, 0})) == 2);
-  BOOST_TEST((output.at({0, -1})) == 3);
-  BOOST_TEST((output.at({-1, -1})) == 1);
+  // FIXME Approx instead of floor
+  BOOST_TEST((int(output[{0, 0}] + .5)) == 0);
+  BOOST_TEST((int(output.at({-1, 0}) + .5)) == 2);
+  BOOST_TEST((int(output.at({0, -1}) + .5)) == 3);
+  BOOST_TEST((int(output.at({-1, -1}) + .5)) == 1);
 
   Euclid::Fits::SifFile f("/tmp/bilinear.fits", Euclid::Fits::FileMode::Overwrite); // FIXME rm
   f.writeRaster(output);
+}
+
+BOOST_AUTO_TEST_CASE(sampling1d_test) {
+  const std::vector<long> inData {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+  const std::vector<long> outData {2, 4, 6};
+  Sampling1D<const long> in(inData.size(), inData.data());
+  in.from(1);
+  in.to(6);
+  in.step(2);
+  long i = 0;
+  for (auto v : in) {
+    BOOST_TEST(v == outData[i]);
+    ++i;
+  }
+  BOOST_TEST(i == outData.size());
+}
+
+BOOST_AUTO_TEST_CASE(standard_convolve1d_test) {
+  const std::vector<int> inData {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+  const std::vector<float> kernelData {0.5, 1., 1.5};
+  std::vector<double> outData(inData.size(), 0.);
+  std::vector<double> expected {4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34};
+  Sampling1D<const int> in(inData.size(), inData.data());
+  Kernel1D<float> kernel(kernelData, 1);
+  Sampling1D<double> out(outData.size(), outData.data());
+  convolve1DZero(in, kernel, out);
+  for (std::size_t i = 0; i < expected.size(); ++i) {
+    printf("%f =? %f\n", outData[i], expected[i]);
+    BOOST_TEST(outData[i] == expected[i]);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(convolve1d_test) {
+  const std::vector<int> inData {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14};
+  const std::vector<float> kernelData {0.5, 1., 1.5, 2., 1.};
+  std::vector<double> outData {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+  std::vector<double> expected {1, 2, 8.5, 4, 26, 6, 44, 8, 62, 10, 65, 12};
+  Sampling1D<const int> in(inData.size(), inData.data());
+  in.from(1);
+  in.step(3);
+  Kernel1D<float> kernel(kernelData, 3);
+  Sampling1D<double> out(outData.size(), outData.data());
+  out.from(2);
+  out.step(2);
+  convolve1DZero(in, kernel, out);
+  for (std::size_t i = 0; i < expected.size(); ++i) {
+    printf("%f =? %f\n", outData[i], expected[i]);
+    BOOST_TEST(outData[i] == expected[i]);
+  }
 }
 
 //-----------------------------------------------------------------------------
