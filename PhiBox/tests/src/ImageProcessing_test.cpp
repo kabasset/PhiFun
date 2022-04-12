@@ -36,35 +36,35 @@ BOOST_AUTO_TEST_CASE(bilinear_test) {
 
 BOOST_AUTO_TEST_CASE(sampling1d_test) {
   const std::vector<long> inData {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-  const std::vector<long> outData {2, 4, 6};
   Sampling1D<const long> in(inData.size(), inData.data());
-  in.from(1);
-  in.to(6);
-  in.step(2);
+  in.from(1).to(6).step(2);
+  const std::vector<long> expected {2, 4, 6};
+  BOOST_TEST(in.count() == expected.size());
+  BOOST_TEST(*in.begin() == 2);
+  BOOST_TEST(*in.end() == 8);
   long i = 0;
   for (auto v : in) {
-    BOOST_TEST(v == outData[i]);
+    BOOST_TEST(v == expected[i]);
     ++i;
   }
-  BOOST_TEST(i == outData.size());
+  BOOST_TEST(i == expected.size());
 }
 
 BOOST_AUTO_TEST_CASE(standard_convolve1d_test) {
   const std::vector<int> inData {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
   const std::vector<float> kernelData {0.5, 1., 1.5};
   std::vector<double> outData(inData.size(), 0.);
-  std::vector<double> expected {4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34};
+  std::vector<double> expected {4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 16};
   Sampling1D<const int> in(inData.size(), inData.data());
   Kernel1D<float> kernel(kernelData, 1);
   Sampling1D<double> out(outData.size(), outData.data());
   convolve1DZero(in, kernel, out);
   for (std::size_t i = 0; i < expected.size(); ++i) {
-    printf("%f =? %f\n", outData[i], expected[i]);
     BOOST_TEST(outData[i] == expected[i]);
   }
 }
 
-BOOST_AUTO_TEST_CASE(convolve1d_test) {
+BOOST_AUTO_TEST_CASE(steped_convolve1d_test) {
   const std::vector<int> inData {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14};
   const std::vector<float> kernelData {0.5, 1., 1.5, 2., 1.};
   std::vector<double> outData {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
@@ -78,7 +78,6 @@ BOOST_AUTO_TEST_CASE(convolve1d_test) {
   out.step(2);
   convolve1DZero(in, kernel, out);
   for (std::size_t i = 0; i < expected.size(); ++i) {
-    printf("%f =? %f\n", outData[i], expected[i]);
     BOOST_TEST(outData[i] == expected[i]);
   }
 }

@@ -79,106 +79,132 @@ struct Kernel1D {
 };
 
 template <typename T>
-struct Sampling1D : public std::iterator<std::input_iterator_tag, T> {
+struct Sampling1D {
 
-  Sampling1D(long size, T* data) :
-      m_size(size), m_from(0), m_to(m_size - 1), m_step(1), m_stride(1), m_data(data), m_it(m_data + m_from) {}
+  template <typename TSampling>
+  class Iterator : public std::iterator<std::input_iterator_tag, T> {
+
+  public:
+    using Value = typename TSampling::Value;
+
+    Iterator(TSampling& sampling, long index) :
+        m_sampling(sampling), m_it(sampling.data() + index * sampling.stride()) {}
+
+    Value& operator*() {
+      return *m_it;
+    }
+
+    Value* operator->() {
+      return m_it;
+    }
+
+    Iterator& operator++() {
+      return *this += 1;
+    }
+
+    Iterator operator++(int) {
+      auto res = *this;
+      ++res;
+    }
+
+    Iterator& operator+=(long n) {
+      m_it += m_sampling.step() * m_sampling.stride() * n;
+      return *this;
+    }
+
+    Iterator& operator-=(long n) {
+      *this += -n;
+      return *this;
+    }
+
+    bool operator==(const Iterator& rhs) const {
+      return m_it == rhs.m_it;
+    }
+
+    bool operator!=(const Iterator& rhs) const {
+      return not(*this == rhs);
+    }
+
+    Iterator& operator=(Value* it) {
+      m_it = it;
+      return *this;
+    }
+
+  private:
+    TSampling& m_sampling;
+    Value* m_it;
+  };
+
+  using Value = T;
+
+  Sampling1D(long size, T* data) : m_size(size), m_from(0), m_to(m_size - 1), m_step(1), m_stride(1), m_data(data) {}
 
   std::size_t size() const {
     return m_size;
   }
 
+  const T* data() const {
+    return m_data;
+  }
+
+  T* data() {
+    return m_data;
+  }
+
   long count() const {
-    return (m_to - m_from + 1) / (m_step * m_stride) * (m_step * m_stride);
+    return (m_to - m_from + 1) / m_step;
   }
 
   long from() const {
     return m_from;
   }
 
-  void from(long value) {
+  Sampling1D& from(long value) {
     m_from = value;
+    return *this;
   }
 
   long to() const {
     return m_to;
   }
 
-  void to(long value) {
+  Sampling1D& to(long value) {
     m_to = value;
+    return *this;
   }
 
   long step() const {
     return m_step;
   }
 
-  void step(long value) {
+  Sampling1D& step(long value) {
     m_step = value;
+    return *this;
   }
 
   long stride() const {
     return m_stride;
   }
 
-  void stride(long value) {
+  Sampling1D& stride(long value) {
     m_stride = value;
-  }
-
-  Sampling1D<const T> begin() const {
-    Sampling1D<const T> b(m_size, m_data);
-    b.m_from = m_from;
-    b.m_to = m_to;
-    b.m_step = m_step;
-    b.m_stride = m_stride;
-    return b;
-  }
-
-  Sampling1D<const T> end() const {
-    auto e = begin();
-    e.m_it = (m_data + m_from) + count();
-    return e;
-  }
-  Sampling1D<T> begin() {
-    auto b = *this;
-    b.m_it = m_data + m_from;
-    return b;
-  }
-
-  Sampling1D<T> end() {
-    auto e = *this;
-    e.m_it = (m_data + m_from) + count();
-    return e;
-  }
-
-  T& operator*() {
-    return *m_it;
-  }
-
-  T* operator->() {
-    return m_it;
-  }
-
-  Sampling1D<T>& operator++() {
-    m_it += m_step * m_stride;
     return *this;
   }
 
-  Sampling1D<T> operator++(int) {
-    auto res = *this;
-    ++res;
+  Iterator<const Sampling1D<const T>> begin() const {
+    return {*this, m_from};
   }
 
-  Sampling1D<T>& operator+=(long n) {
-    m_it += m_step * m_stride * n;
-    return *this;
+  Iterator<const Sampling1D<const T>> end() const {
+    return {*this, m_to + 1};
   }
 
-  bool operator==(const Sampling1D<T>& rhs) const {
-    return m_it == rhs.m_it;
+  Iterator<Sampling1D<T>> begin() {
+    return {*this, m_from};
   }
 
-  bool operator!=(const Sampling1D& rhs) const {
-    return not(*this == rhs);
+  Iterator<Sampling1D<T>> end() {
+    return {*this, m_to + 1};
   }
 
 private:
@@ -188,24 +214,24 @@ private:
   long m_step;
   long m_stride;
   T* m_data;
-  T* m_it;
 };
 
 template <typename TSampling, typename TKernel, typename USampling>
 void convolve1DZero(const TSampling& in, const TKernel& kernel, USampling& out) {
-  auto inIt = in;
-  inIt.step(1);
-  auto outIt = out;
-  // outIt.step(1);
+  auto inUnit = in;
+  inUnit.step(1); // For inner_product
+  auto inIt = inUnit.begin();
+  inIt -= kernel.backward;
+  auto outIt = out.begin();
   long i = in.from();
-  for (; i < kernel.backward; i += in.step(), outIt += out.step()) {
-    *outIt = std::inner_product(kernel.center - i, kernel.end(), inIt, kernel.bias);
+  for (; i < kernel.backward; i += in.step(), inIt += in.step(), ++outIt) {
+    *outIt = std::inner_product(kernel.center - i, kernel.end(), in.data(), kernel.bias);
   }
-  for (; i < in.size() - kernel.forward; i += in.step(), inIt += in.step(), outIt += out.step()) {
+  for (; i < in.size() - kernel.forward; i += in.step(), inIt += in.step(), ++outIt) {
     *outIt = std::inner_product(kernel.begin(), kernel.end(), inIt, kernel.bias);
   }
-  for (; i <= in.to(); i += in.step(), inIt += in.step(), outIt += out.step()) {
-    *outIt = std::inner_product(kernel.begin(), kernel.center + (in.size() - 1 - i), inIt, kernel.bias);
+  for (; i <= in.to(); i += in.step(), inIt += in.step(), ++outIt) {
+    *outIt = std::inner_product(kernel.begin(), kernel.center + (in.size() - i), inIt, kernel.bias);
   }
 }
 
