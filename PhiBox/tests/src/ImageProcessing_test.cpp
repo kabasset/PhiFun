@@ -54,7 +54,7 @@ BOOST_AUTO_TEST_CASE(standard_convolve1d_test) {
   const std::vector<int> inData {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
   const std::vector<float> kernelData {0.5, 1., 1.5};
   std::vector<double> outData(inData.size(), 0.);
-  std::vector<double> expected {4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 16};
+  const std::vector<double> expected {4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 16};
   Sampling1D<const int> in(inData.size(), inData.data());
   Kernel1D<float> kernel(kernelData, 1);
   Sampling1D<double> out(outData.size(), outData.data());
@@ -68,7 +68,7 @@ BOOST_AUTO_TEST_CASE(steped_convolve1d_test) {
   const std::vector<int> inData {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14};
   const std::vector<float> kernelData {0.5, 1., 1.5, 2., 1.};
   std::vector<double> outData {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
-  std::vector<double> expected {1, 2, 8.5, 4, 26, 6, 44, 8, 62, 10, 65, 12};
+  const std::vector<double> expected {1, 2, 8.5, 4, 26, 6, 44, 8, 62, 10, 65, 12};
   Sampling1D<const int> in(inData.size(), inData.data());
   in.from(1);
   in.step(3);
@@ -78,6 +78,43 @@ BOOST_AUTO_TEST_CASE(steped_convolve1d_test) {
   out.step(2);
   convolve1DZero(in, kernel, out);
   for (std::size_t i = 0; i < expected.size(); ++i) {
+    BOOST_TEST(outData[i] == expected[i]);
+  }
+}
+
+template <typename T>
+std::vector<T> transposePad(const std::vector<T>& in, long stride) {
+  std::vector<T> out(in.size() * stride, T());
+  for (std::size_t i = 0; i < in.size(); ++i) {
+    out[i * stride] = in[i];
+  }
+  return out;
+}
+
+BOOST_AUTO_TEST_CASE(transpose_pad_test) {
+  const std::vector<int> in {1, 2, 3, 4};
+  const auto out = transposePad(in, 3);
+  const std::vector<int> expected {1, 0, 0, 2, 0, 0, 3, 0, 0, 4, 0, 0};
+  BOOST_TEST(out == expected);
+}
+
+BOOST_AUTO_TEST_CASE(strided_convolve1d_test) {
+  const auto inData = transposePad<int>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14}, 2);
+  const std::vector<float> kernelData {0.5, 1., 1.5, 2., 1.};
+  auto outData = transposePad<double>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}, 3);
+  const auto expected = transposePad<double>({1, 2, 8.5, 4, 26, 6, 44, 8, 62, 10, 65, 12}, 3);
+  Sampling1D<const int> in(inData.size() / 2, inData.data());
+  in.from(1);
+  in.step(3);
+  in.stride(2);
+  Kernel1D<float> kernel(kernelData, 3);
+  Sampling1D<double> out(outData.size() / 3, outData.data());
+  out.from(2);
+  out.step(2);
+  out.stride(3);
+  convolve1DZero(in, kernel, out);
+  for (std::size_t i = 0; i < expected.size(); ++i) {
+    printf("%i: %f =? %f\n", i, outData[i], expected[i]);
     BOOST_TEST(outData[i] == expected[i]);
   }
 }
