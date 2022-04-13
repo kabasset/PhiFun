@@ -114,7 +114,6 @@ BOOST_AUTO_TEST_CASE(strided_convolve1d_test) {
   out.stride(3);
   convolve1DZero(in, kernel, out);
   for (std::size_t i = 0; i < expected.size(); ++i) {
-    printf("%i: %f =? %f\n", i, outData[i], expected[i]);
     BOOST_TEST(outData[i] == expected[i]);
   }
 }

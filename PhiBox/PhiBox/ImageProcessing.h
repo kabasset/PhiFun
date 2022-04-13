@@ -221,11 +221,13 @@ void convolve1DZero(const TSampling& in, const TKernel& kernel, USampling& out) 
   auto inUnit = in;
   inUnit.step(1); // For inner_product
   auto inIt = inUnit.begin();
+  auto inMinIt = inIt;
+  inMinIt -= in.from();
   inIt -= kernel.backward;
   auto outIt = out.begin();
   long i = in.from();
   for (; i < kernel.backward; i += in.step(), inIt += in.step(), ++outIt) {
-    *outIt = std::inner_product(kernel.center - i, kernel.end(), in.data(), kernel.bias);
+    *outIt = std::inner_product(kernel.center - i, kernel.end(), inMinIt, kernel.bias);
   }
   for (; i < in.size() - kernel.forward; i += in.step(), inIt += in.step(), ++outIt) {
     *outIt = std::inner_product(kernel.begin(), kernel.end(), inIt, kernel.bias);
