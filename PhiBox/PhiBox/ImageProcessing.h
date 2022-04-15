@@ -266,10 +266,10 @@ void convolveXyZero(
   printf("%i-%i:%i - %i-%i:%i\n", xFrom, xTo, xStep, yFrom, yTo, yStep);
 
   // Convolve along x-axis
-  const long xConvolvedWidth = (xTo - xFrom + 1) / xStep;
-  const long xConvolvedHeight = (yTo - yFrom + 1); // / yStep;
+  const long xConvolvedWidth = (xTo - xFrom + xStep) / xStep;
+  const long xConvolvedHeight = yTo - yFrom + 1; // / yStep;
   VecRaster<typename TRasterOut::Value, TRasterOut::Dim> xConvolved({xConvolvedWidth, xConvolvedHeight});
-  Sampling1D<const typename TRasterIn::Value> inSampling(region.shape()[0], &in[{0, yFrom}]);
+  Sampling1D<const typename TRasterIn::Value> inSampling(in.template length<0>(), &in[{0, yFrom}]);
   inSampling.from(xFrom).to(xTo).step(xStep);
   printf("inSampling: %i-%i:%i:%i\n", inSampling.from(), inSampling.to(), inSampling.step(), inSampling.stride());
   Sampling1D<typename TRasterOut::Value> xConvolvedSampling(xConvolvedWidth, xConvolved.data());
@@ -287,8 +287,6 @@ void convolveXyZero(
     convolve1DZero(inSampling, kernel, xConvolvedSampling);
     inSampling.data(inSampling.data() + in.shape()[0]);
     xConvolvedSampling.data(xConvolvedSampling.data() + xConvolvedWidth);
-    for (long x = 0; x < xConvolvedWidth; ++x)
-      printf("%i, %i: %i\n", x, y, xConvolved[{x, y - yFrom}]);
   }
 
   printf("xConvolved:\n%ix%i\n", xConvolvedWidth, xConvolvedHeight);
@@ -301,7 +299,7 @@ void convolveXyZero(
 
   // Convolve along y-axis
   Sampling1D<typename TRasterOut::Value> ySampling(xConvolved.template length<1>(), xConvolved.data());
-  ySampling.from(region.front[1]).to(region.back[1]).step(yStep).stride(xConvolvedWidth);
+  ySampling.from(region.front[1] - yFrom).to(region.back[1] - yFrom).step(yStep).stride(xConvolvedWidth);
   printf("ySampling: %i-%i:%i:%i\n", ySampling.from(), ySampling.to(), ySampling.step(), ySampling.stride());
   Sampling1D<typename TRasterOut::Value> outSampling(out.template length<1>(), out.data());
   outSampling.stride(out.template length<0>());
@@ -314,8 +312,14 @@ void convolveXyZero(
     convolve1DZero(ySampling, kernel, outSampling);
     ySampling.data(ySampling.data() + 1);
     outSampling.data(outSampling.data() + 1);
-    for (long y = 0; y < out.template length<1>(); ++y)
-      printf("%i, %i: %i\n", x, y, out[{x, y}]);
+  }
+
+  printf("out:\n%ix%i\n", out.template length<0>(), out.template length<1>());
+  for (long y = 0; y < out.template length<1>(); ++y) {
+    for (long x = 0; x < out.template length<0>(); ++x) {
+      printf("%i ", out[{x, y}]);
+    }
+    printf("\n");
   }
 }
 

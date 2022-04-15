@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE(standard_convolve1d_test) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(steped_convolve1d_test) {
+BOOST_AUTO_TEST_CASE(stepped_convolve1d_test) {
   const std::vector<int> inData {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14};
   const std::vector<float> kernelData {0.5, 1., 1.5, 2., 1.};
   std::vector<double> outData {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
@@ -128,7 +128,8 @@ BOOST_AUTO_TEST_CASE(standard_convolvexy_test) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(steped_convolvexy_test) {
+BOOST_AUTO_TEST_CASE(stepped_no_edge_convolvexy_test) {
+  printf("\nSTEPPED NO EDGE\n\n");
   VecRaster<int, 2> in({4 * 3 + 2, 3 * 2 + 2});
   std::fill(in.begin(), in.end(), 2);
   std::vector<int> kernelData {1, 1, 1};
@@ -136,6 +137,36 @@ BOOST_AUTO_TEST_CASE(steped_convolvexy_test) {
   VecRaster<int, 2> out({4, 3});
   convolveXyZero(in, {{1, 1}, {4 * 3, 3 * 2}}, {3, 2}, kernel, out);
   const std::vector<int> expected(12, 18);
+  BOOST_TEST(out.size() == expected.size());
+  for (std::size_t i = 0; i < expected.size(); ++i) {
+    BOOST_TEST(out.data()[i] == expected[i]);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(stepped_front_edge_convolvexy_test) {
+  printf("\nSTEPPED FRONT EDGE\n\n");
+  VecRaster<int, 2> in({4 * 3 + 2, 3 * 2 + 2});
+  std::fill(in.begin(), in.end(), 2);
+  std::vector<int> kernelData {1, 1, 1};
+  Kernel1D<int> kernel(kernelData, 1);
+  VecRaster<int, 2> out({4, 3});
+  convolveXyZero(in, {{0, 0}, {3 * 3, 2 * 2}}, {3, 2}, kernel, out);
+  const std::vector<int> expected {8, 12, 12, 12, 12, 18, 18, 18, 12, 18, 18, 18};
+  BOOST_TEST(out.size() == expected.size());
+  for (std::size_t i = 0; i < expected.size(); ++i) {
+    BOOST_TEST(out.data()[i] == expected[i]);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(stepped_back_edge_convolvexy_test) {
+  printf("\nSTEPPED BACK EDGE\n\n");
+  VecRaster<int, 2> in({4 * 3 + 2, 3 * 2 + 2});
+  std::fill(in.begin(), in.end(), 2);
+  std::vector<int> kernelData {1, 1, 1};
+  Kernel1D<int> kernel(kernelData, 1);
+  VecRaster<int, 2> out({4, 3});
+  convolveXyZero(in, {{4, 3}, {4 * 3 + 1, 3 * 2 + 1}}, {3, 2}, kernel, out);
+  const std::vector<int> expected {18, 18, 18, 12, 18, 18, 18, 12, 12, 12, 12, 8};
   BOOST_TEST(out.size() == expected.size());
   for (std::size_t i = 0; i < expected.size(); ++i) {
     BOOST_TEST(out.data()[i] == expected[i]);
