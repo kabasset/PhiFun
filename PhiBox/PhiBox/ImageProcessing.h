@@ -240,7 +240,7 @@ void convolve1DZero(const TSampling& in, const TKernel& kernel, USampling& out) 
   for (; i < kernel.backward; i += in.step(), inIt += in.step(), ++outIt) {
     *outIt = std::inner_product(kernel.center - i, kernel.end(), inMinIt, kernel.bias);
   }
-  for (; i < in.size() - kernel.forward; i += in.step(), inIt += in.step(), ++outIt) {
+  for (; i <= in.size() - kernel.forward - in.step(); i += in.step(), inIt += in.step(), ++outIt) {
     *outIt = std::inner_product(kernel.begin(), kernel.end(), inIt, kernel.bias);
   }
   for (; i <= in.to(); i += in.step(), inIt += in.step(), ++outIt) {
