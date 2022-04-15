@@ -22,7 +22,7 @@ elements_depends_on_subdirs(ElementsKernel)
 # Examples:
 #          find_package(CppUnit)
 #===============================================================================
-find_package(OpenMP)
+#find_package(OpenMP)
 
 #===============================================================================
 # Declare the library dependencies here
@@ -45,8 +45,8 @@ elements_add_library(PhiDuffieux src/lib/*.cpp
 #                        LINK_LIBRARIES Boost ElementsExamples)
 #===============================================================================
 elements_add_executable(PhiEstimatePsf src/program/PhiEstimatePsf.cpp
-                     INCLUDE_DIRS PhiDuffieux OpenMP
-                     LINK_LIBRARIES PhiDuffieux OpenMP)
+                     INCLUDE_DIRS PhiDuffieux # OpenMP
+                     LINK_LIBRARIES PhiDuffieux) # OpenMP
 elements_add_executable(PhiGeneratePsf src/program/PhiGeneratePsf.cpp
                      INCLUDE_DIRS PhiDuffieux
                      LINK_LIBRARIES PhiDuffieux)

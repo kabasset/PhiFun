@@ -13,7 +13,7 @@
 #include "PhiZernike/Zernike.h"
 
 #include <map>
-#include <omp.h>
+// #include <omp.h>
 #include <string>
 
 using namespace Phi;
@@ -118,9 +118,9 @@ public:
     logger.info() << "  Done in: " << chrono.last().count() << " ms";
 
     logger.info("Broadband PSF computation...");
-    omp_set_num_threads(threadCount);
+    // omp_set_num_threads(threadCount);
     chrono.start();
-#pragma omp parallel for
+    // #pragma omp parallel for
     for (auto& b : broadbands) {
       b.get<Duffieux::BroadbandPsf>();
     }
