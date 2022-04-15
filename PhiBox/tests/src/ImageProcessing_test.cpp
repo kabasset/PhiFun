@@ -115,12 +115,27 @@ BOOST_AUTO_TEST_CASE(strided_convolve1d_test) {
 }
 
 BOOST_AUTO_TEST_CASE(standard_convolvexy_test) {
-  VecRaster<int, 2> in({4, 3}, 2);
+  VecRaster<int, 2> in({4, 3});
+  std::fill(in.begin(), in.end(), 2);
   std::vector<int> kernelData {1, 1, 1};
   Kernel1D<int> kernel(kernelData, 1);
   VecRaster<int, 2> out(in.shape());
   convolveXyZero(in, kernel, out);
-  const std::vector<int> expected = {8, 12, 12, 8, 12, 18, 18, 12, 8, 12, 12, 8};
+  const std::vector<int> expected {8, 12, 12, 8, 12, 18, 18, 12, 8, 12, 12, 8};
+  BOOST_TEST(out.size() == expected.size());
+  for (std::size_t i = 0; i < expected.size(); ++i) {
+    BOOST_TEST(out.data()[i] == expected[i]);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(steped_convolvexy_test) {
+  VecRaster<int, 2> in({4 * 3 + 2, 3 * 2 + 2});
+  std::fill(in.begin(), in.end(), 2);
+  std::vector<int> kernelData {1, 1, 1};
+  Kernel1D<int> kernel(kernelData, 1);
+  VecRaster<int, 2> out({4, 3});
+  convolveXyZero(in, {{1, 1}, {4 * 3, 3 * 2}}, {3, 2}, kernel, out);
+  const std::vector<int> expected(12, 18);
   BOOST_TEST(out.size() == expected.size());
   for (std::size_t i = 0; i < expected.size(); ++i) {
     BOOST_TEST(out.data()[i] == expected[i]);

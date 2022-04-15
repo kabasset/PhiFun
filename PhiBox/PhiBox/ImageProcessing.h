@@ -263,12 +263,12 @@ void convolveXyZero(
   const auto yTo = std::min(in.template length<1>() - 1, region.back[1] + kernel.forward);
   const auto xStep = step[0];
   const auto yStep = step[1];
+  printf("%i-%i:%i - %i-%i:%i\n", xFrom, xTo, xStep, yFrom, yTo, yStep);
 
   // Convolve along x-axis
   const long xConvolvedWidth = (xTo - xFrom + 1) / xStep;
-  const long xConvolvedHeight = (yTo - yFrom + 1) / yStep;
-  Position<2> xConvolvedShape {xConvolvedWidth, xConvolvedHeight};
-  VecRaster<typename TRasterOut::Value, TRasterOut::Dim> xConvolved(xConvolvedShape);
+  const long xConvolvedHeight = (yTo - yFrom + 1); // / yStep;
+  VecRaster<typename TRasterOut::Value, TRasterOut::Dim> xConvolved({xConvolvedWidth, xConvolvedHeight});
   Sampling1D<const typename TRasterIn::Value> inSampling(region.shape()[0], &in[{0, yFrom}]);
   inSampling.from(xFrom).to(xTo).step(xStep);
   printf("inSampling: %i-%i:%i:%i\n", inSampling.from(), inSampling.to(), inSampling.step(), inSampling.stride());
@@ -280,9 +280,23 @@ void convolveXyZero(
       xConvolvedSampling.step(),
       xConvolvedSampling.stride());
   for (long y = yFrom; y <= yTo; ++y) {
+    printf(
+        "in: %i, xConvolved: %i\n",
+        std::distance(in.data(), inSampling.data()),
+        std::distance(xConvolved.data(), xConvolvedSampling.data()));
     convolve1DZero(inSampling, kernel, xConvolvedSampling);
     inSampling.data(inSampling.data() + in.shape()[0]);
     xConvolvedSampling.data(xConvolvedSampling.data() + xConvolvedWidth);
+    for (long x = 0; x < xConvolvedWidth; ++x)
+      printf("%i, %i: %i\n", x, y, xConvolved[{x, y - yFrom}]);
+  }
+
+  printf("xConvolved:\n%ix%i\n", xConvolvedWidth, xConvolvedHeight);
+  for (long y = 0; y < xConvolvedHeight; ++y) {
+    for (long x = 0; x < xConvolvedWidth; ++x) {
+      printf("%i ", xConvolved[{x, y}]);
+    }
+    printf("\n");
   }
 
   // Convolve along y-axis
@@ -293,9 +307,15 @@ void convolveXyZero(
   outSampling.stride(out.template length<0>());
   printf("outSampling: %i-%i:%i:%i\n", outSampling.from(), outSampling.to(), outSampling.step(), outSampling.stride());
   for (long x = xFrom; x <= xTo; x += xStep) {
+    printf(
+        "xConvolved: %i, out: %i\n",
+        std::distance(xConvolved.data(), ySampling.data()),
+        std::distance(out.data(), outSampling.data()));
     convolve1DZero(ySampling, kernel, outSampling);
     ySampling.data(ySampling.data() + 1);
     outSampling.data(outSampling.data() + 1);
+    for (long y = 0; y < out.template length<1>(); ++y)
+      printf("%i, %i: %i\n", x, y, out[{x, y}]);
   }
 }
 
