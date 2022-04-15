@@ -10,6 +10,12 @@
 namespace Phi {
 namespace Image2D {
 
+using Euclid::Fits::Position;
+
+using Euclid::Fits::Region;
+
+using Euclid::Fits::VecRaster;
+
 template <typename T>
 T clamp(T in, T min, T max) {
   return std::max(min, std::min(in, max));
@@ -151,6 +157,11 @@ struct Sampling1D {
     return m_data;
   }
 
+  Sampling1D& data(T* d) {
+    m_data = d;
+    return *this;
+  }
+
   long count() const {
     return (m_to - m_from + 1) / m_step;
   }
@@ -237,8 +248,61 @@ void convolve1DZero(const TSampling& in, const TKernel& kernel, USampling& out) 
   }
 }
 
-template <typename TSampling, typename TKernel, typename USampling>
-void convolveXyZero(const TSampling& in, const TKernel& kernel, USampling& out) {}
+template <typename TRasterIn, typename TKernel, typename TRasterOut>
+void convolveXyZero(
+    const TRasterIn& in,
+    const Region<2>& region,
+    const Position<2>& step,
+    const TKernel& kernel,
+    TRasterOut& out) { // FIXME support nd-rasters for batch processing
+
+  // Set sampling
+  const auto xFrom = region.front[0];
+  const auto yFrom = std::max(0L, region.front[1] - kernel.backward);
+  const auto xTo = region.back[0];
+  const auto yTo = std::min(in.template length<1>() - 1, region.back[1] + kernel.forward);
+  const auto xStep = step[0];
+  const auto yStep = step[1];
+
+  // Convolve along x-axis
+  const long xConvolvedWidth = (xTo - xFrom + 1) / xStep;
+  const long xConvolvedHeight = (yTo - yFrom + 1) / yStep;
+  Position<2> xConvolvedShape {xConvolvedWidth, xConvolvedHeight};
+  VecRaster<typename TRasterOut::Value, TRasterOut::Dim> xConvolved(xConvolvedShape);
+  Sampling1D<const typename TRasterIn::Value> inSampling(region.shape()[0], &in[{0, yFrom}]);
+  inSampling.from(xFrom).to(xTo).step(xStep);
+  printf("inSampling: %i-%i:%i:%i\n", inSampling.from(), inSampling.to(), inSampling.step(), inSampling.stride());
+  Sampling1D<typename TRasterOut::Value> xConvolvedSampling(xConvolvedWidth, xConvolved.data());
+  printf(
+      "xConvolvedSampling: %i-%i:%i:%i\n",
+      xConvolvedSampling.from(),
+      xConvolvedSampling.to(),
+      xConvolvedSampling.step(),
+      xConvolvedSampling.stride());
+  for (long y = yFrom; y <= yTo; ++y) {
+    convolve1DZero(inSampling, kernel, xConvolvedSampling);
+    inSampling.data(inSampling.data() + in.shape()[0]);
+    xConvolvedSampling.data(xConvolvedSampling.data() + xConvolvedWidth);
+  }
+
+  // Convolve along y-axis
+  Sampling1D<typename TRasterOut::Value> ySampling(xConvolved.template length<1>(), xConvolved.data());
+  ySampling.from(region.front[1]).to(region.back[1]).step(yStep).stride(xConvolvedWidth);
+  printf("ySampling: %i-%i:%i:%i\n", ySampling.from(), ySampling.to(), ySampling.step(), ySampling.stride());
+  Sampling1D<typename TRasterOut::Value> outSampling(out.template length<1>(), out.data());
+  outSampling.stride(out.template length<0>());
+  printf("outSampling: %i-%i:%i:%i\n", outSampling.from(), outSampling.to(), outSampling.step(), outSampling.stride());
+  for (long x = xFrom; x <= xTo; x += xStep) {
+    convolve1DZero(ySampling, kernel, outSampling);
+    ySampling.data(ySampling.data() + 1);
+    outSampling.data(outSampling.data() + 1);
+  }
+}
+
+template <typename TRasterIn, typename TKernel, typename TRasterOut>
+void convolveXyZero(const TRasterIn& in, const TKernel& kernel, TRasterOut& out) {
+  convolveXyZero(in, in.domain(), Position<2>::one(), kernel, out);
+}
 
 } // namespace Image2D
 } // namespace Phi

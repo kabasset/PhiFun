@@ -104,17 +104,26 @@ BOOST_AUTO_TEST_CASE(strided_convolve1d_test) {
   auto outData = transposePad<double>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}, 3);
   const auto expected = transposePad<double>({1, 2, 8.5, 4, 26, 6, 44, 8, 62, 10, 65, 12}, 3);
   Sampling1D<const int> in(inData.size() / 2, inData.data());
-  in.from(1);
-  in.step(3);
-  in.stride(2);
+  in.from(1).step(3).stride(2);
   Kernel1D<float> kernel(kernelData, 3);
   Sampling1D<double> out(outData.size() / 3, outData.data());
-  out.from(2);
-  out.step(2);
-  out.stride(3);
+  out.from(2).step(2).stride(3);
   convolve1DZero(in, kernel, out);
   for (std::size_t i = 0; i < expected.size(); ++i) {
     BOOST_TEST(outData[i] == expected[i]);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(standard_convolvexy_test) {
+  VecRaster<int, 2> in({4, 3}, 2);
+  std::vector<int> kernelData {1, 1, 1};
+  Kernel1D<int> kernel(kernelData, 1);
+  VecRaster<int, 2> out(in.shape());
+  convolveXyZero(in, kernel, out);
+  const std::vector<int> expected = {8, 12, 12, 8, 12, 18, 18, 12, 8, 12, 12, 8};
+  BOOST_TEST(out.size() == expected.size());
+  for (std::size_t i = 0; i < expected.size(); ++i) {
+    BOOST_TEST(out.data()[i] == expected[i]);
   }
 }
 
