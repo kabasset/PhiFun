@@ -100,11 +100,11 @@ private:
     for (auto aIt = m_parameters.zernikeCoefficients.begin(); aIt != m_parameters.zernikeCoefficients.end();
          ++aIt, ++zIt) {
       minusPhi -= (*aIt) * (*zIt);
-    }
+    } // Faster than inner_product
     const auto arg = m_wavenumber * minusPhi;
-    return {mask * std::cos(arg), mask * std::sin(arg)};
-    // return mask * std::exp(std::complex<double>(0, m_wavenumber * minusPhi));
-    // std::exp is slower when the argument is pure imaginary
+    return std::polar(mask, arg);
+    // exp is slower when the argument is pure imaginary
+    // See notes: https://en.cppreference.com/w/cpp/numeric/complex/exp
   }
 
   Parameters m_parameters; ///< The optical parameters
