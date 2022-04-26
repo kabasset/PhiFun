@@ -163,7 +163,7 @@ struct Sampling1D {
   }
 
   long count() const {
-    return (m_to - m_from + 1) / m_step;
+    return (m_to - m_from + m_step) / m_step;
   }
 
   long from() const {

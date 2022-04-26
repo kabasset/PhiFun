@@ -15,8 +15,6 @@
 
 using namespace Phi;
 
-using boost::program_options::value; // FIXME rm
-
 using Raster2D = Euclid::Fits::VecRaster<std::complex<double>, 2>;
 using Raster3D = Euclid::Fits::VecRaster<std::complex<double>, 3>;
 using View2D = Euclid::Fits::PtrRaster<std::complex<double>, 2>;

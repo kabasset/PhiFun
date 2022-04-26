@@ -46,6 +46,9 @@ elements_add_library(PhiBox src/lib/*.cpp
 elements_add_executable(PhiTimeIntegration src/program/PhiTimeIntegration.cpp
                      INCLUDE_DIRS PhiBox
                      LINK_LIBRARIES PhiBox)
+elements_add_executable(PhiTimeConvolution src/program/PhiTimeConvolution.cpp
+                     INCLUDE_DIRS ElementsKernel PhiBox
+                     LINK_LIBRARIES ElementsKernel PhiBox)
 
 #===============================================================================
 # Declare the Boost tests here
@@ -65,6 +68,14 @@ elements_add_unit_test(SplineIntegrator tests/src/SplineIntegrator_test.cpp
                      TYPE Boost)
 elements_add_unit_test(StepperPipeline tests/src/StepperPipeline_test.cpp 
                      EXECUTABLE PhiBox_StepperPipeline_test
+                     LINK_LIBRARIES PhiBox
+                     TYPE Boost)
+elements_add_unit_test(Convolution tests/src/Convolution_test.cpp 
+                     EXECUTABLE PhiBox_Convolution_test
+                     LINK_LIBRARIES PhiBox
+                     TYPE Boost)
+elements_add_unit_test(Sampling tests/src/Sampling_test.cpp 
+                     EXECUTABLE PhiBox_Sampling_test
                      LINK_LIBRARIES PhiBox
                      TYPE Boost)
 
