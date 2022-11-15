@@ -3,10 +3,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 #include "EleFits/MefFile.h"
-#include "EleFitsData/TestRaster.h"
-#include "EleFitsUtils/ProgramOptions.h"
-#include "EleFitsValidation/Chronometer.h"
 #include "ElementsKernel/ProgramHeaders.h"
+#include "LitlRun/Chronometer.h"
+#include "LitlRun/ProgramOptions.h"
 #include "PhiBox/SplineIntegrator.h"
 #include "PhiDuffieux/BroadbandSystem.h"
 #include "PhiFourier/Dft.h"
@@ -25,8 +24,8 @@ static Elements::Logging logger = Elements::Logging::getLogger("PhiEstimatePsf")
 /**
  * @brief Generate a circular pupil mask.
  */
-Euclid::Fits::VecRaster<double> generatePupil(long maskSide, long pupilRadius) {
-  Euclid::Fits::VecRaster<double> pupil({maskSide, maskSide});
+Litl::Raster<double> generatePupil(long maskSide, long pupilRadius) {
+  Litl::Raster<double> pupil({maskSide, maskSide});
   const auto maskRadius = maskSide / 2;
   const auto pupilRadiusSquared = pupilRadius * pupilRadius;
   for (const auto& p : pupil.domain()) {
@@ -54,7 +53,7 @@ public:
    */
   std::pair<OptionsDescription, PositionalOptionsDescription> defineProgramArguments() override {
 
-    Euclid::Fits::ProgramOptions options("Compute a broadband PSF from a pupil mask and randmom Zernike coefficients.");
+    Litl::ProgramOptions options("Compute a broadband PSF from a pupil mask and randmom Zernike coefficients.");
 
     options.named("alphas", "Number of Zernike indices", 45L);
     options.named("lambdas", "Number of wavelengths", 40L);
@@ -86,7 +85,7 @@ public:
 
     Euclid::Fits::MefFile f(args["output"].as<std::string>(), Euclid::Fits::FileMode::Overwrite);
 
-    using Chrono = Euclid::Fits::Validation::Chronometer<std::chrono::milliseconds>;
+    using Chrono = Litl::Chronometer<std::chrono::milliseconds>;
     Chrono chrono;
 
     logger.info("Initialization...");
@@ -95,7 +94,7 @@ public:
     const auto zernike = Zernike::basis(pupilDiameter / 2, maskSide, alphaCount);
     logger.info("  Zernike basis done.");
     std::vector<double> alphas;
-    Euclid::Fits::Test::RandomRaster<double, 1>({alphaCount}, -1000, 1000).moveTo(alphas);
+    Litl::Raster<double, 1>({alphaCount}).generate(Litl::UniformNoise<double>(-1000, 1000)).moveTo(alphas);
     logger.info("  Zernike coefficients done.");
     Fourier::ComplexDftBuffer nonOpticalTf({maskSide / 2 + 1, maskSide});
     std::fill(nonOpticalTf.begin(), nonOpticalTf.end(), 1.); // FIXME
@@ -130,7 +129,11 @@ public:
     for (auto& b : broadbands) {
       const auto i = std::distance(broadbands.data(), &b) + 1;
       logger.info() << "    Parameter #" << i << ": " << b.milliseconds() << " ms";
-      f.appendImage("Broadband PSF " + std::to_string(i), {}, b.get<Duffieux::BroadbandPsf>());
+      const auto& psf = b.get<Duffieux::BroadbandPsf>();
+      f.appendImage(
+          "Broadband PSF " + std::to_string(i),
+          {},
+          Euclid::Fits::makeRaster(psf.data(), psf.shape()[0], psf.shape()[1]));
     }
     logger.info() << "  See: " << f.filename();
 

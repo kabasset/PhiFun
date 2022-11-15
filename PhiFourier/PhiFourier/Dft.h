@@ -5,6 +5,7 @@
 #ifndef _PHIFOURIER_DFT_H
 #define _PHIFOURIER_DFT_H
 
+#include "LitlCore/Raster.h"
 #include "PhiFourier/DftPlan.h"
 
 namespace Phi {
@@ -190,8 +191,8 @@ TRealRaster& norm2(const TComplexRaster& input, TRealRaster& output) {
  * @copybrief norm2()
  */
 template <typename TComplexRaster>
-Euclid::Fits::VecRaster<double> norm2(const TComplexRaster& input) {
-  Euclid::Fits::VecRaster<double> output(input.shape());
+Litl::Raster<double> norm2(const TComplexRaster& input) {
+  Litl::Raster<double> output(input.shape());
   norm2(input, output);
   return output;
 }

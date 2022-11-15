@@ -5,7 +5,7 @@
 #ifndef _PHIZERNIKE_CHONG_H
 #define _PHIZERNIKE_CHONG_H
 
-#include "EleFitsData/Raster.h"
+#include "LitlCore/Raster.h"
 #include "PhiZernike/Indexing.h"
 
 #include <cmath> // atan
@@ -151,11 +151,11 @@ private:
 /**
  * @brief Zernike basis.
  */
-Euclid::Fits::VecRaster<double, 3> chongBasis(long side, long orders) {
+Litl::Raster<double, 3> chongBasis(long side, long orders) {
   const ChongRadials zero(0, orders - 1);
   const auto& azimuths = zero.azimuthals();
   const long count = azimuths.size();
-  Euclid::Fits::VecRaster<double, 3> raster({count, side, side});
+  Litl::Raster<double, 3> raster({count, side, side});
   const double center = .5 * side;
   const double normalization = 1. / (center * center);
   double* it = raster.data();

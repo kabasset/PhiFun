@@ -18,7 +18,7 @@ namespace Duffieux {
 class BroadbandSystem : public Framework::StepperPipeline<BroadbandSystem> {
 
 public:
-  using Stack = Euclid::Fits::VecRaster<std::complex<double>, 3>;
+  using Stack = Litl::Raster<std::complex<double>, 3>;
   struct Parameters {
     std::vector<double> wavelengths;
     std::vector<double> integrationWavelengths;

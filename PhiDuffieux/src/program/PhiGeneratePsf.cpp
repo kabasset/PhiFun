@@ -3,10 +3,9 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 #include "EleFits/MefFile.h"
-#include "EleFitsData/TestRaster.h"
-#include "EleFitsUtils/ProgramOptions.h"
-#include "EleFitsValidation/Chronometer.h"
 #include "ElementsKernel/ProgramHeaders.h"
+#include "LitlRun/Chronometer.h"
+#include "LitlRun/ProgramOptions.h"
 #include "PhiBox/SplineIntegrator.h"
 #include "PhiDuffieux/MonochromaticSystem.h"
 #include "PhiFourier/Dft.h"
@@ -21,11 +20,17 @@ using boost::program_options::value; // FIXME rm
 
 static Elements::Logging logger = Elements::Logging::getLogger("PhiGeneratePsf");
 
+// FIXME rm when EleFits moves to Litl
+template <typename TRaster>
+void appendImage(Euclid::Fits::MefFile& f, const std::string& name, const TRaster& raster) {
+  f.appendImage(name, {}, Euclid::Fits::makeRaster(raster.data(), raster.shape()[0], raster.shape()[1]));
+}
+
 /**
  * @brief Generate a circular pupil mask.
  */
-Euclid::Fits::VecRaster<double> generatePupil(long maskSide, long pupilRadius) {
-  Euclid::Fits::VecRaster<double> pupil({maskSide, maskSide});
+Litl::Raster<double> generatePupil(long maskSide, long pupilRadius) {
+  Litl::Raster<double> pupil({maskSide, maskSide});
   const auto maskRadius = maskSide / 2;
   const auto pupilRadiusSquared = pupilRadius * pupilRadius;
   for (const auto& p : pupil.domain()) {
@@ -49,7 +54,7 @@ public:
    */
   std::pair<OptionsDescription, PositionalOptionsDescription> defineProgramArguments() override {
 
-    Euclid::Fits::ProgramOptions options("Compute a broadband PSF from a pupil mask and randmom Zernike coefficients.");
+    Litl::ProgramOptions options("Compute a broadband PSF from a pupil mask and randmom Zernike coefficients.");
 
     options.named("alphas", "Number of Zernike indices", 45L);
     options.named("lambdas", "Number of wavelengths", 16L);
@@ -75,7 +80,7 @@ public:
 
     Euclid::Fits::MefFile f(args["output"].as<std::string>(), Euclid::Fits::FileMode::Overwrite);
 
-    using Chrono = Euclid::Fits::Validation::Chronometer<std::chrono::milliseconds>;
+    using Chrono = Litl::Chronometer<std::chrono::milliseconds>;
     Chrono chrono;
 
     logger.info("Generating pupil mask...");
@@ -93,7 +98,7 @@ public:
     logger.info("Generating random Zernike coefficients...");
     chrono.start();
     std::vector<double> alphas;
-    Euclid::Fits::Test::RandomRaster<double, 1>({alphaCount}, -1000, 1000).moveTo(alphas);
+    Litl::Raster<double, 1>({alphaCount}).generate(Litl::UniformNoise<double>(-1000, 1000)).moveTo(alphas);
     chrono.stop();
     logger.info() << "  " << chrono.last().count() << "ms";
     for (std::size_t i = 0; i < alphas.size(); ++i) {
@@ -130,22 +135,22 @@ public:
       logger.info() << "    Complex exp: " << system.milliseconds<Duffieux::PupilAmplitude>() << " ms";
       logger.info() << "    Complex DFT: " << system.milliseconds<Duffieux::PsfAmplitude>() << " ms";
       logger.info() << "    Norm squared: " << system.milliseconds<Duffieux::PsfIntensity>() << " ms";
-      f.appendImage(lambdaStr + " optical PSF", {}, intensity);
+      appendImage(f, lambdaStr + " optical PSF", intensity);
 
       logger.info("  Computing optical transfer function...");
       const auto& stf = system.get<Duffieux::SystemTf>();
       logger.info() << "    Real DFT, complex multiplication: " << system.milliseconds<Duffieux::SystemTf>() << " ms";
-      f.appendImage(lambdaStr + " system TF", {}, norm2(stf));
+      appendImage(f, lambdaStr + " system TF", norm2(stf));
 
       logger.info("  Wrapping system transfer function...");
       const auto& warpedTf = system.get<Duffieux::WarpedSystemTf>();
       logger.info() << "    Bilinear interpolation: " << system.milliseconds<Duffieux::WarpedSystemTf>() << " ms";
-      f.appendImage(lambdaStr + " warped system TF intensity", {}, norm2(warpedTf));
+      appendImage(f, lambdaStr + " warped system TF intensity", norm2(warpedTf));
 
       logger.info("  Computing system PSF...");
       const auto& psf = system.get<Duffieux::WarpedSystemPsf>();
       logger.info() << "    Inverse real DFT: " << system.milliseconds<Duffieux::WarpedSystemPsf>() << " ms";
-      f.appendImage(lambdaStr + " system PSF", {}, psf);
+      appendImage(f, lambdaStr + " system PSF", psf);
 
       logger.info() << "  Overall: " << system.milliseconds() << " ms";
     }

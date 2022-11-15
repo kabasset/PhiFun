@@ -5,7 +5,7 @@
 #ifndef _PHIFOURIER_DFTBUFFER_H
 #define _PHIFOURIER_DFTBUFFER_H
 
-#include "EleFitsData/Raster.h"
+#include "LitlCore/Raster.h"
 #include "PhiFourier/DftMemory.h"
 
 namespace Phi {
@@ -120,16 +120,14 @@ protected:
 
 /**
  * @brief A 2D position.
- * @see `Euclid::Fits::Position` from EleFits.
  */
-using Position = Euclid::Fits::Position<2>;
+using Position = Litl::Position<2>;
 
 /**
  * @brief Input or output buffer of a `DftPlan`.
- * @see `Euclid::Fits::Raster` from EleFits.
  */
 template <typename T>
-using DftBuffer = Euclid::Fits::Raster<T, 2, DftBufferData<T>>;
+using DftBuffer = Litl::Raster<T, 2, DftBufferData<T>>;
 
 /**
  * @brief Specialization for `double`.

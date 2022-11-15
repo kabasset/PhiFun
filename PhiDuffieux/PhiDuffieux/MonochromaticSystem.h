@@ -115,7 +115,7 @@ inline const Fourier::ComplexDftBuffer& MonochromaticSystem::doGet<SystemTf>() {
 template <>
 inline void MonochromaticSystem::doEvaluate<SystemTf>() {
   m_psfToTf.transform();
-  const Euclid::Fits::PtrRaster<const std::complex<double>> noTf(m_psfToTf.outShape(), m_parameters.nonOpticalTf);
+  const Litl::PtrRaster<const std::complex<double>> noTf(m_psfToTf.outShape(), m_parameters.nonOpticalTf);
   m_psfToTf.out() *= noTf;
 }
 

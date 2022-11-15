@@ -2,19 +2,13 @@
 // This file is part of PhiFun <github.com/kabasset/PhiFun>
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-#include "EleFitsData/Raster.h"
+#include "LitlCore/Raster.h"
 
 #ifndef _PHIBOX_IMAGEPROCESSING_H
 #define _PHIBOX_IMAGEPROCESSING_H
 
 namespace Phi {
 namespace Image2D {
-
-using Euclid::Fits::Position;
-
-using Euclid::Fits::Region;
-
-using Euclid::Fits::VecRaster;
 
 template <typename T>
 T clamp(T in, T min, T max) {
@@ -251,16 +245,16 @@ void convolve1DZero(const TSampling& in, const TKernel& kernel, USampling& out) 
 template <typename TRasterIn, typename TKernel, typename TRasterOut>
 void convolveXyZero(
     const TRasterIn& in,
-    const Region<2>& region,
-    const Position<2>& step,
+    const Litl::Box<2>& region,
+    const Litl::Position<2>& step,
     const TKernel& kernel,
     TRasterOut& out) { // FIXME support nd-rasters for batch processing
 
   // Set sampling
-  const auto xFrom = region.front[0];
-  const auto yFrom = std::max(0L, region.front[1] - kernel.backward);
-  const auto xTo = region.back[0];
-  const auto yTo = std::min(in.template length<1>() - 1, region.back[1] + kernel.forward);
+  const auto xFrom = region.front()[0];
+  const auto yFrom = std::max(0L, region.front()[1] - kernel.backward);
+  const auto xTo = region.back()[0];
+  const auto yTo = std::min(in.template length<1>() - 1, region.back()[1] + kernel.forward);
   const auto xStep = step[0];
   const auto yStep = step[1];
   printf("%i-%i:%i - %i-%i:%i\n", xFrom, xTo, xStep, yFrom, yTo, yStep);
@@ -268,7 +262,7 @@ void convolveXyZero(
   // Convolve along x-axis
   const long xConvolvedWidth = (xTo - xFrom + xStep) / xStep;
   const long xConvolvedHeight = yTo - yFrom + 1; // / yStep;
-  VecRaster<typename TRasterOut::Value, TRasterOut::Dim> xConvolved({xConvolvedWidth, xConvolvedHeight});
+  Litl::Raster<typename TRasterOut::Value, TRasterOut::Dimension> xConvolved({xConvolvedWidth, xConvolvedHeight});
   Sampling1D<const typename TRasterIn::Value> inSampling(in.template length<0>(), &in[{0, yFrom}]);
   inSampling.from(xFrom).to(xTo).step(xStep);
   printf("inSampling: %i-%i:%i:%i\n", inSampling.from(), inSampling.to(), inSampling.step(), inSampling.stride());
@@ -299,7 +293,7 @@ void convolveXyZero(
 
   // Convolve along y-axis
   Sampling1D<typename TRasterOut::Value> ySampling(xConvolved.template length<1>(), xConvolved.data());
-  ySampling.from(region.front[1] - yFrom).to(region.back[1] - yFrom).step(yStep).stride(xConvolvedWidth);
+  ySampling.from(region.front()[1] - yFrom).to(region.back()[1] - yFrom).step(yStep).stride(xConvolvedWidth);
   printf("ySampling: %i-%i:%i:%i\n", ySampling.from(), ySampling.to(), ySampling.step(), ySampling.stride());
   Sampling1D<typename TRasterOut::Value> outSampling(out.template length<1>(), out.data());
   outSampling.stride(out.template length<0>());
@@ -325,7 +319,7 @@ void convolveXyZero(
 
 template <typename TRasterIn, typename TKernel, typename TRasterOut>
 void convolveXyZero(const TRasterIn& in, const TKernel& kernel, TRasterOut& out) {
-  convolveXyZero(in, in.domain(), Position<2>::one(), kernel, out);
+  convolveXyZero(in, in.domain(), Litl::Position<2>::one(), kernel, out);
 }
 
 } // namespace Image2D

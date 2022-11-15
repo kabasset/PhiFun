@@ -5,7 +5,7 @@
 #ifndef _PHIZERNIKE_ZERNIKE_H
 #define _PHIZERNIKE_ZERNIKE_H
 
-#include "EleFitsData/Raster.h"
+#include "LitlCore/Raster.h"
 #include "PhiZernike/Indexing.h"
 
 #include <algorithm> // copy_n
@@ -141,8 +141,8 @@ private:
  * @param side The side of the raster to be produced (can be larger than the circle)
  * @param count The number of Zernike polynomials
  */
-Euclid::Fits::VecRaster<double, 3> basis(long radius, long side, long count = XySeries::JCount) {
-  Euclid::Fits::VecRaster<double, 3> raster({count, side, side});
+Litl::Raster<double, 3> basis(long radius, long side, long count = XySeries::JCount) {
+  Litl::Raster<double, 3> raster({count, side, side});
   const double normalization = 1. / radius;
   double* it = raster.data();
   for (long y = -radius; y < radius; ++y) {

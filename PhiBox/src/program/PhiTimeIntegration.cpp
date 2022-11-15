@@ -2,11 +2,10 @@
 // This file is part of PhiFun <github.com/kabasset/PhiFun>
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-#include "EleFitsData/Raster.h"
-#include "EleFitsData/TestRaster.h"
-#include "EleFitsUtils/ProgramOptions.h"
-#include "EleFitsValidation/Chronometer.h"
 #include "ElementsKernel/ProgramHeaders.h"
+#include "LitlCore/Raster.h"
+#include "LitlRun/Chronometer.h"
+#include "LitlRun/ProgramOptions.h"
 #include "PhiBox/ImageProcessing.h"
 #include "PhiBox/SplineIntegrator.h"
 
@@ -15,10 +14,10 @@
 
 using namespace Phi;
 
-using Raster2D = Euclid::Fits::VecRaster<std::complex<double>, 2>;
-using Raster3D = Euclid::Fits::VecRaster<std::complex<double>, 3>;
-using View2D = Euclid::Fits::PtrRaster<std::complex<double>, 2>;
-using Chrono = Euclid::Fits::Validation::Chronometer<std::chrono::milliseconds>;
+using Raster2D = Litl::Raster<std::complex<double>, 2>;
+using Raster3D = Litl::Raster<std::complex<double>, 3>;
+using View2D = Litl::PtrRaster<std::complex<double>, 2>;
+using Chrono = Litl::Chronometer<std::chrono::milliseconds>;
 
 void warp(const Raster3D& input, Raster3D& output) {
   const auto width = output.shape()[0];
@@ -99,7 +98,7 @@ class PhiTimeIntegration : public Elements::Program {
 
 public:
   std::pair<OptionsDescription, PositionalOptionsDescription> defineProgramArguments() override {
-    Euclid::Fits::ProgramOptions options("Wrap and integrate a set of random monochromatic TFs into a broadband TF.");
+    Litl::ProgramOptions options("Wrap and integrate a set of random monochromatic TFs into a broadband TF.");
     options.named("input", "Monochromatic TF diameter", 1024);
     options.named("output", "Broadband TF diameter", 512);
     options.named("lambdas", "Number of wavelengths", 40);
@@ -120,7 +119,8 @@ public:
 
     logger.info() << "Generating values...";
     chrono.start();
-    Euclid::Fits::Test::RandomRaster<std::complex<double>, 3> input({inputSide / 2 + 1, inputSide, lambdaCount});
+    Litl::Raster<std::complex<double>, 3> input({inputSide / 2 + 1, inputSide, lambdaCount});
+    input.generate(Litl::GaussianNoise<double>());
     chrono.stop();
     logger.info() << "  " << inputSide / 2 + 1 << "x" << inputSide << "x" << lambdaCount << "px";
     logger.info() << "  " << chrono.last().count() << "ms";

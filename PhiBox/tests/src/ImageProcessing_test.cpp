@@ -2,7 +2,6 @@
 // This file is part of PhiFun <github.com/kabasset/PhiFun>
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-#include "EleFits/SifFile.h" // FIXME rm
 #include "PhiBox/ImageProcessing.h"
 
 #include <boost/test/unit_test.hpp>
@@ -16,8 +15,8 @@ BOOST_AUTO_TEST_SUITE(ImageProcessing_test)
 //-----------------------------------------------------------------------------
 
 BOOST_AUTO_TEST_CASE(bilinear_test) {
-  const Euclid::Fits::VecRaster<int> input({2, 2}, std::vector<int> {0, 2, 3, 1});
-  Euclid::Fits::VecRaster<double> output({100, 50});
+  const Litl::Raster<int> input({2, 2}, std::vector<int> {0, 2, 3, 1});
+  Litl::Raster<double> output({100, 50});
   const double xFactor = 1. / (output.length<0>() - 1);
   const double yFactor = 1. / (output.length<1>() - 1);
   for (const auto& p : output.domain()) {
@@ -29,9 +28,6 @@ BOOST_AUTO_TEST_CASE(bilinear_test) {
   BOOST_TEST((int(output.at({-1, 0}) + .5)) == 2);
   BOOST_TEST((int(output.at({0, -1}) + .5)) == 3);
   BOOST_TEST((int(output.at({-1, -1}) + .5)) == 1);
-
-  Euclid::Fits::SifFile f("/tmp/bilinear.fits", Euclid::Fits::FileMode::Overwrite); // FIXME rm
-  f.writeRaster(output);
 }
 
 BOOST_AUTO_TEST_CASE(sampling1d_test) {
@@ -115,11 +111,11 @@ BOOST_AUTO_TEST_CASE(strided_convolve1d_test) {
 }
 
 BOOST_AUTO_TEST_CASE(standard_convolvexy_test) {
-  VecRaster<int, 2> in({4, 3});
+  Litl::Raster<int, 2> in({4, 3});
   std::fill(in.begin(), in.end(), 2);
   std::vector<int> kernelData {1, 1, 1};
   Kernel1D<int> kernel(kernelData, 1);
-  VecRaster<int, 2> out(in.shape());
+  Litl::Raster<int, 2> out(in.shape());
   convolveXyZero(in, kernel, out);
   const std::vector<int> expected {8, 12, 12, 8, 12, 18, 18, 12, 8, 12, 12, 8};
   BOOST_TEST(out.size() == expected.size());
@@ -130,11 +126,11 @@ BOOST_AUTO_TEST_CASE(standard_convolvexy_test) {
 
 BOOST_AUTO_TEST_CASE(stepped_no_edge_convolvexy_test) {
   printf("\nSTEPPED NO EDGE\n\n");
-  VecRaster<int, 2> in({4 * 3 + 2, 3 * 2 + 2});
+  Litl::Raster<int, 2> in({4 * 3 + 2, 3 * 2 + 2});
   std::fill(in.begin(), in.end(), 2);
   std::vector<int> kernelData {1, 1, 1};
   Kernel1D<int> kernel(kernelData, 1);
-  VecRaster<int, 2> out({4, 3});
+  Litl::Raster<int, 2> out({4, 3});
   convolveXyZero(in, {{1, 1}, {4 * 3, 3 * 2}}, {3, 2}, kernel, out);
   const std::vector<int> expected(12, 18);
   BOOST_TEST(out.size() == expected.size());
@@ -145,11 +141,11 @@ BOOST_AUTO_TEST_CASE(stepped_no_edge_convolvexy_test) {
 
 BOOST_AUTO_TEST_CASE(stepped_front_edge_convolvexy_test) {
   printf("\nSTEPPED FRONT EDGE\n\n");
-  VecRaster<int, 2> in({4 * 3 + 2, 3 * 2 + 2});
+  Litl::Raster<int, 2> in({4 * 3 + 2, 3 * 2 + 2});
   std::fill(in.begin(), in.end(), 2);
   std::vector<int> kernelData {1, 1, 1};
   Kernel1D<int> kernel(kernelData, 1);
-  VecRaster<int, 2> out({4, 3});
+  Litl::Raster<int, 2> out({4, 3});
   convolveXyZero(in, {{0, 0}, {3 * 3, 2 * 2}}, {3, 2}, kernel, out);
   const std::vector<int> expected {8, 12, 12, 12, 12, 18, 18, 18, 12, 18, 18, 18};
   BOOST_TEST(out.size() == expected.size());
@@ -160,11 +156,11 @@ BOOST_AUTO_TEST_CASE(stepped_front_edge_convolvexy_test) {
 
 BOOST_AUTO_TEST_CASE(stepped_back_edge_convolvexy_test) {
   printf("\nSTEPPED BACK EDGE\n\n");
-  VecRaster<int, 2> in({4 * 3 + 2, 3 * 2 + 2});
+  Litl::Raster<int, 2> in({4 * 3 + 2, 3 * 2 + 2});
   std::fill(in.begin(), in.end(), 2);
   std::vector<int> kernelData {1, 1, 1};
   Kernel1D<int> kernel(kernelData, 1);
-  VecRaster<int, 2> out({4, 3});
+  Litl::Raster<int, 2> out({4, 3});
   convolveXyZero(in, {{4, 3}, {4 * 3 + 1, 3 * 2 + 1}}, {3, 2}, kernel, out);
   const std::vector<int> expected {18, 18, 18, 12, 18, 18, 18, 12, 12, 12, 12, 8};
   BOOST_TEST(out.size() == expected.size());
